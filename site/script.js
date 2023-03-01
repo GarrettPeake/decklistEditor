@@ -14,17 +14,19 @@ async function load(){
     // Sets the data property
 }
 
+var saveTimer;
 async function save(){
-    // Sends the data property back to worker
-    await fetch(storage_endpoint, {
-        headers: {
-            authorization: window.location.pathname
-        },
-        method: "put",
-        body: JSON.stringify(data)
-    }).then(e => JSON.parse(e)).then(js => {
-        data = js;
-    })
+    if(saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+            // Sends the data property back to worker
+            fetch(storage_endpoint, {
+                headers: {
+                    authorization: window.location.pathname
+                },
+                method: "put",
+                body: JSON.stringify(data)
+            })
+        }, 500);
     localStorage.setItem("link_cache", JSON.stringify(link_cache));
 }
 
@@ -141,7 +143,7 @@ function updateData(newData){
                     cardLinks.appendChild(spacer);
                 }
             }
-        }, 1000);
+        }, 500);
     }
 }
 
