@@ -6,7 +6,7 @@ const storage_endpoint = "https://deckliststorage.ifficient.workers.dev"
 
 async function load(){
     await fetch(storage_endpoint, {headers: {
-        authorization: "testAuth123"
+        authorization: window.location.pathname
     }}).then(e => JSON.parse(e)).then(js => {
         data = js;
     })
@@ -18,10 +18,10 @@ async function save(){
     // Sends the data property back to worker
     await fetch(storage_endpoint, {
         headers: {
-            authorization: "testAuth123"
+            authorization: window.location.pathname
         },
         method: "put",
-        body: data
+        body: JSON.stringify(data)
     }).then(e => JSON.parse(e)).then(js => {
         data = js;
     })
