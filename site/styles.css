@@ -1,0 +1,131 @@
+body {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    padding: 0;
+    margin: 0;
+    background-color: rgb(51, 51, 59);
+    overflow: hidden;
+    color: white;
+    font-size: x-large;
+}
+
+#decks{
+    width: 15vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#syncScroll{
+    height: 100vh;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: row;
+    overflow-y: scroll;
+}
+
+button {
+    margin: 4px;
+    padding: 8px 16px;
+    border-radius: 99px;
+    background-color: grey;
+    outline: none;
+}
+
+button:hover{
+    outline: 4px solid rgb(108, 59, 151);
+}
+
+#deleteButton{
+    color: black;
+    background-color: rgb(162, 71, 71);
+    border: none;
+}
+
+#editor{
+    width: 20vw;
+    height: 100vh;
+    overflow-y: unset;
+    resize: none;
+    border: none;
+    background-color: inherit;
+    color: inherit;
+    font-size: inherit;
+    font-family: inherit;
+}
+
+#editor:focus{
+    border: 0 none #FFF;
+    outline:none;
+}
+
+#hovers{
+    width: 20vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#display{
+    width: 45vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+}
+
+a {
+    color: rgb(199, 199, 255);
+    font-size: inherit;
+    font-family: inherit;
+}
+
+p {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+
+.header{
+    font-size: inherit;
+    font-family: inherit;
+}
+
+.oneCard{
+    width: 40vw;
+    max-height: 90vh;
+}
+
+.twoCard{
+    width: 22vw;
+}
+
+.unfoundCard{
+    color: rgb(194, 97, 97);
+}
+
+.scrollable::-webkit-scrollbar {
+    width: 10px;
+  }
+
+.scrollable::-webkit-scrollbar-track {
+    background: none;
+    border-radius: 10px;
+}
+
+.scrollable::-webkit-scrollbar-thumb {
+    background: rgb(170, 170, 170);
+    border-radius: 99px;
+}
+
+.scrollable::-webkit-scrollbar-thumb:hover {
+    background: rgb(61, 61, 61);
+    border-radius: 10px;
+}
+
+.scrollable::-webkit-scrollbar-thumb:active {
+    background: rgb(68, 68, 68);
+    border-radius: 10px;
+}

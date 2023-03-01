@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="styles.css">
+        <title>Deck Editor</title>
+    </head>
+    <body>
+        <div id="decks" class="scrollable"></div>
+        <div id="syncScroll" class="scrollable">
+            <textarea spellcheck="false" id="editor" placeholder="Start typing here to create a new deck. The first line is the title&#13;&#10;&#13;&#10;Card links will appear to the right as you type. Click a link to open the card's scryfall page or just hover over it to see the card&#13;&#10;&#13;&#10;You can add section headers like #header and card quantities like '4x Rat'"></textarea>
+            <span id="hovers" ></span>
+        </div>
+        <div id="display"></div>
+    </body>
+    <script src="script.js"></script>
+</html>
