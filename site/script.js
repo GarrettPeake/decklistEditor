@@ -29,6 +29,7 @@ async function save(){
 }
 
 function setDeckList(){
+    console.log(data)
     // Wipe the decklist
     decklist.innerHTML = "";
     // Add a button to add a new deck
