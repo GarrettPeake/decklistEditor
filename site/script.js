@@ -7,7 +7,7 @@ const storage_endpoint = "https://deckliststorage.ifficient.workers.dev"
 async function load(){
     await fetch(storage_endpoint, {headers: {
         authorization: window.location.pathname
-    }}).then(e => JSON.parse(e)).then(js => {
+    }}).then(e => e.json()).then(js => {
         data = js;
     })
     link_cache = JSON.parse(localStorage.getItem("link_cache")) || {};
