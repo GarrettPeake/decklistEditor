@@ -185,5 +185,10 @@ function switchDeck(index){
     }
 }
 
-await load();
-switchDeck(0)();
+
+async function start(){
+    await load();
+    switchDeck(0)();
+}
+
+start();
