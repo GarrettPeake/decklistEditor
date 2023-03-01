@@ -185,5 +185,5 @@ function switchDeck(index){
     }
 }
 
-load();
+await load();
 switchDeck(0)();
