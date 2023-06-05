@@ -1,0 +1,9 @@
+name = "deckliststorage"
+main = "src/index.js"
+compatibility_date = "2023-03-01"
+account_id = "5af9bf2be24dfe756af55b3bbd542e57"
+
+
+kv_namespaces = [
+  { binding = "DECKLISTEDITOR", id = "bb576df04a11477f935a3b59ae24ba18" }
+]

@@ -2,12 +2,9 @@ var data = [];
 var link_cache = {}
 var selectedDeck = 0;
 
-const storage_endpoint = "https://deckliststorage.ifficient.workers.dev"
-
 async function load(){
-    await fetch(storage_endpoint, {headers: {
-        authorization: window.location.pathname
-    }}).then(e => e.json()).then(js => {
+    await fetch(`/api${window.location.pathname}`)
+    .then(e => e.json()).then(js => {
         data = js;
     })
     link_cache = JSON.parse(localStorage.getItem("link_cache")) || {};
@@ -19,10 +16,7 @@ async function save(){
     if(saveTimer) clearTimeout(saveTimer);
         saveTimer = setTimeout(() => {
             // Sends the data property back to worker
-            fetch(storage_endpoint, {
-                headers: {
-                    authorization: window.location.pathname
-                },
+            fetch(`/api${window.location.pathname}`, {
                 method: "put",
                 body: JSON.stringify(data)
             })

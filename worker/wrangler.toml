@@ -1,8 +1,0 @@
-name = "deckliststorage"
-main = "src/index.js"
-compatibility_date = "2023-03-01"
-
-
-kv_namespaces = [
-  { binding = "DECKLISTEDITOR", id = "fde3e704d43846179f0cbbcd9543b4d8", preview_id = "24372d4082974abca7494c60948d4249" }
-]

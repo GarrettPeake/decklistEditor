@@ -1,0 +1,11 @@
+{
+  "name": "decklister",
+  "version": "1.0.0",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "deploy": "wrangler pages deploy ."
+  },
+  "author": "Garrett Peake",
+  "license": "MIT"
+}
