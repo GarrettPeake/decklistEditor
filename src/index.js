@@ -37,6 +37,18 @@ export default {
     }
 
     // Serve static assets
+    // For SPA routing: serve index.html for paths without file extensions (user slugs)
+    // This allows routes like /testuser to load the app
+    const pathname = url.pathname;
+    const hasFileExtension = /\.[a-zA-Z0-9]+$/.test(pathname);
+
+    if (!hasFileExtension && pathname !== '/') {
+      // This is a user slug route, serve index.html
+      const indexUrl = new URL(request.url);
+      indexUrl.pathname = '/index.html';
+      return env.ASSETS.fetch(new Request(indexUrl, request));
+    }
+
     return env.ASSETS.fetch(request);
   },
 };
