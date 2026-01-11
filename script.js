@@ -23,6 +23,10 @@ var decklist = document.getElementById("decks");
 var mobileDecklist = document.getElementById("mobileDecks");
 var cardLinks = document.getElementById("hovers");
 var dispArea = document.getElementById("display");
+var emptyState = document.getElementById("emptyState");
+var cardPreviewContainer = document.getElementById("cardPreviewContainer");
+var cardImagesContainer = document.getElementById("cardImagesContainer");
+var connectionLine = document.getElementById("connectionLine");
 var sidebar = document.getElementById("sidebar");
 var sidebarToggle = document.getElementById("sidebarToggle");
 var sidebarExpand = document.getElementById("sidebarExpand");
@@ -304,10 +308,21 @@ function setDeckList(){
 function display_card(cardData){
     return (e) => {
         currentCardData = cardData;
-        dispArea.innerHTML = "";
+
+        // Hide empty state and show card preview container
+        if (emptyState) emptyState.style.display = "none";
+        if (cardPreviewContainer) {
+            cardPreviewContainer.classList.add("active");
+        }
+
+        // Clear previous card images
+        if (cardImagesContainer) {
+            cardImagesContainer.innerHTML = "";
+        }
 
         var cardfront = document.createElement("img")
         cardfront.setAttribute("src", cardData.imgfront);
+        cardfront.classList.add("card-image");
 
         // Add click handler for mobile - tap image to open Scryfall
         if (isMobile && cardData.link) {
@@ -321,7 +336,7 @@ function display_card(cardData){
             var cardback = document.createElement("img")
             cardback.setAttribute("src", cardData.imgback);
             cardfront.classList.add("twoCard");
-            cardback.classList.add("twoCard");
+            cardback.classList.add("twoCard", "card-image");
 
             if (isMobile && cardData.link) {
                 cardback.classList.add("card-image-clickable");
@@ -330,11 +345,11 @@ function display_card(cardData){
                 };
             }
 
-            dispArea.appendChild(cardback);
+            cardImagesContainer.appendChild(cardback);
         } else {
             cardfront.classList.add("oneCard");
         }
-        dispArea.appendChild(cardfront);
+        cardImagesContainer.appendChild(cardfront);
     }
 }
 
@@ -360,71 +375,139 @@ function updateData(newData){
             title.classList.add("deck-title");
             cardLinks.appendChild(title);
 
+            var currentStack = null;
+
             for(var i = 1; i < cards.length; i++){
                 const lineText = cards[i];
                 if(lineText != ""){
                     if(lineText[0] == "#"){
+                        // Close previous stack
+                        if (currentStack) {
+                            cardLinks.appendChild(currentStack);
+                            currentStack = null;
+                        }
+
                         const header = document.createElement("p")
                         header.classList.add("header");
-                        header.innerHTML = lineText;
+                        header.innerHTML = lineText.substring(1).trim();
                         cardLinks.appendChild(header);
+
+                        // Start new stack for this section
+                        currentStack = document.createElement("div");
+                        currentStack.classList.add("card-stack");
                     } else {
-                        const cardText = document.createElement("p")
-                        const quantity = document.createElement("p")
-                        const cardLink = document.createElement("a")
-                        cardText.appendChild(quantity);
-                        cardText.appendChild(cardLink);
+                        // Parse card quantity and name
+                        var cardQuantity = "";
                         var cardName;
                         var tokens = lineText.split(" ");
-                        if(!isNaN(tokens[0])){
-                            quantity.innerHTML = tokens[0] + " ";
+
+                        // Check if first token is a number or ends with 'x'
+                        var firstToken = tokens[0];
+                        if (!isNaN(firstToken) || (firstToken.endsWith('x') && !isNaN(firstToken.slice(0, -1)))) {
+                            cardQuantity = firstToken.replace('x', '');
                             tokens.splice(0, 1);
-                            cardName = tokens.join(" ")
+                            cardName = tokens.join(" ");
                         } else {
+                            cardQuantity = "1";
                             cardName = lineText;
                         }
-                        const cardID = cardName;
-                        cardLink.classList.add("CardLink");
-                        cardLink.innerHTML = cardID;
 
-                        // Desktop: open in new tab on click
-                        if (!isMobile) {
-                            cardLink.setAttribute("target", "_blank");
+                        if (!currentStack) {
+                            currentStack = document.createElement("div");
+                            currentStack.classList.add("card-stack");
                         }
 
-                        get_card(cardID).then(cardData => {
+                        // Create stacked card item
+                        const cardItem = document.createElement("div");
+                        cardItem.classList.add("card-item");
+
+                        const quantityBox = document.createElement("div");
+                        quantityBox.classList.add("card-quantity");
+                        quantityBox.textContent = cardQuantity;
+
+                        const cardNameSpan = document.createElement("div");
+                        cardNameSpan.classList.add("card-name");
+                        cardNameSpan.textContent = cardName;
+
+                        cardItem.appendChild(quantityBox);
+                        cardItem.appendChild(cardNameSpan);
+
+                        // Fetch card data
+                        get_card(cardName).then(cardData => {
                             if(cardData.link){
                                 // Desktop: hover to show, click to open
                                 if (!isMobile) {
-                                    cardLink.addEventListener("mouseover", display_card(cardData));
-                                    cardLink.setAttribute("href", cardData.link);
+                                    cardItem.addEventListener("mouseenter", (e) => {
+                                        display_card(cardData)();
+                                        showConnectionLine(cardItem);
+                                    });
+                                    cardItem.addEventListener("mouseleave", (e) => {
+                                        hideConnectionLine();
+                                    });
+                                    cardItem.onclick = () => {
+                                        window.open(cardData.link, "_blank");
+                                    };
                                 }
                                 // Mobile: tap to show card art (tap image to open Scryfall)
                                 else {
-                                    cardLink.onclick = (e) => {
+                                    cardItem.onclick = (e) => {
                                         e.preventDefault();
-                                        // Remove selected class from all card links
-                                        document.querySelectorAll(".CardLink.selected").forEach(el => {
-                                            el.classList.remove("selected");
-                                        });
-                                        cardLink.classList.add("selected");
                                         display_card(cardData)();
                                     };
                                 }
-                                display_card(cardData)();
                             } else {
-                                cardLink.classList.add("unfoundCard");
+                                cardNameSpan.classList.add("unfoundCard");
                             }
-                        })
-                        cardLinks.appendChild(cardText);
+                        });
+
+                        currentStack.appendChild(cardItem);
                     }
                 } else {
-                    const spacer = document.createElement("a")
-                    spacer.innerHTML = "</br>";
-                    cardLinks.appendChild(spacer);
+                    // Empty line - close current stack if exists
+                    if (currentStack) {
+                        cardLinks.appendChild(currentStack);
+                        currentStack = null;
+                    }
                 }
             }
+
+            // Append any remaining stack
+            if (currentStack) {
+                cardLinks.appendChild(currentStack);
+            }
         }, 500);
+    }
+}
+
+// Show connection line from card to display
+function showConnectionLine(cardElement) {
+    if (isMobile || !connectionLine || !dispArea) return;
+
+    const cardRect = cardElement.getBoundingClientRect();
+    const displayRect = dispArea.getBoundingClientRect();
+
+    const startX = cardRect.right;
+    const startY = cardRect.top + (cardRect.height / 2);
+    const endX = displayRect.left;
+
+    connectionLine.style.left = startX + 'px';
+    connectionLine.style.top = startY + 'px';
+    connectionLine.style.width = (endX - startX) + 'px';
+    connectionLine.classList.add('active');
+}
+
+// Hide connection line
+function hideConnectionLine() {
+    if (connectionLine) {
+        connectionLine.classList.remove('active');
+
+        // Hide card preview and show empty state
+        if (cardPreviewContainer) {
+            cardPreviewContainer.classList.remove("active");
+        }
+        if (emptyState) {
+            emptyState.style.display = "flex";
+        }
     }
 }
 
