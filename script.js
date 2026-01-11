@@ -1,9 +1,18 @@
-var data = [];
+var data = []; // Array of {id, text} objects
 var link_cache = {}
 var selectedDeck = 0;
 var isMobile = window.innerWidth <= 768;
 var isRenderMode = false;
 var currentCardData = null;
+
+// URL parsing
+var isShareMode = window.location.pathname.startsWith('/share/');
+var shareId = isShareMode ? window.location.pathname.split('/share/')[1] : null;
+
+// Parse user and deckId from URL: /{user} or /{user}/{deckId}
+var pathParts = window.location.pathname.split('/').filter(p => p);
+var currentUser = !isShareMode ? pathParts[0] : null;
+var initialDeckId = !isShareMode && pathParts[1] ? pathParts[1] : null;
 
 // DOM Elements
 var editor = document.getElementById("editor");
@@ -16,6 +25,10 @@ var sidebarToggle = document.getElementById("sidebarToggle");
 var mobileMenuBtn = document.getElementById("mobileMenuBtn");
 var mobileDropdown = document.getElementById("mobileDropdown");
 var renderToggle = document.getElementById("renderToggle");
+var shareModal = document.getElementById("shareModal");
+var shareUrlInput = document.getElementById("shareUrl");
+var copyShareBtn = document.getElementById("copyShareBtn");
+var closeShareModal = document.getElementById("closeShareModal");
 
 // Update mobile detection on resize
 window.addEventListener("resize", () => {
@@ -29,19 +42,55 @@ window.addEventListener("resize", () => {
     }
 });
 
+// Helper to get current deck text
+function getDeckText(index) {
+    if (isShareMode) {
+        return data[index]; // In share mode, data is still just text
+    }
+    return data[index]?.text || "";
+}
+
+// Helper to get current deck id
+function getDeckId(index) {
+    return data[index]?.id;
+}
+
 async function load(){
-    await fetch(`/api${window.location.pathname}`)
-    .then(e => e.json()).then(js => {
-        data = js;
-    })
+    if (isShareMode) {
+        // Load shared deck (backend resolves reference and returns text only)
+        const response = await fetch(`/api/share/${shareId}`);
+        if (response.ok) {
+            const deckText = await response.text();
+            data = [deckText]; // Share mode still uses plain text
+        } else {
+            data = ["# Shared deck not found"];
+        }
+    } else {
+        // Load user decks (now returns array of {id, text} objects)
+        await fetch(`/api/${currentUser}`)
+        .then(e => e.json()).then(js => {
+            data = js;
+        });
+
+        // Find initial deck by ID if specified in URL
+        if (initialDeckId && data.length > 0) {
+            const deckIndex = data.findIndex(d => d.id === initialDeckId);
+            if (deckIndex !== -1) {
+                selectedDeck = deckIndex;
+            }
+        }
+    }
     link_cache = JSON.parse(localStorage.getItem("link_cache")) || {};
 }
 
 var saveTimer;
 async function save(){
+    // Don't save in share mode
+    if (isShareMode) return;
+
     if(saveTimer) clearTimeout(saveTimer);
         saveTimer = setTimeout(() => {
-            fetch(`/api${window.location.pathname}`, {
+            fetch(`/api/${currentUser}`, {
                 method: "put",
                 body: JSON.stringify(data)
             })
@@ -49,7 +98,78 @@ async function save(){
     localStorage.setItem("link_cache", JSON.stringify(link_cache));
 }
 
+// Update browser URL when switching decks
+function updateUrl(deckId) {
+    if (isShareMode || !currentUser) return;
+
+    const newPath = deckId ? `/${currentUser}/${deckId}` : `/${currentUser}`;
+    if (window.location.pathname !== newPath) {
+        history.pushState({ deckId }, '', newPath);
+    }
+}
+
+// Handle browser back/forward
+window.addEventListener('popstate', (e) => {
+    if (isShareMode) return;
+
+    const deckId = e.state?.deckId;
+    if (deckId) {
+        const deckIndex = data.findIndex(d => d.id === deckId);
+        if (deckIndex !== -1) {
+            selectedDeck = deckIndex;
+            editor.value = getDeckText(selectedDeck);
+            editor.style.height = "";
+            editor.style.height = editor.scrollHeight + "px";
+            setDeckList();
+            updateData(getDeckText(selectedDeck));
+        }
+    } else if (data.length > 0) {
+        selectedDeck = 0;
+        editor.value = getDeckText(0);
+        editor.style.height = "";
+        editor.style.height = editor.scrollHeight + "px";
+        setDeckList();
+        updateData(getDeckText(0));
+    }
+});
+
+async function shareDeck(){
+    const deck = data[selectedDeck];
+    if (!deck || !deck.id) {
+        alert("No deck to share");
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/share', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user: currentUser, deckId: deck.id })
+        });
+        const result = await response.json();
+        const shareUrl = `${window.location.origin}/share/${result.uuid}`;
+
+        // Show modal with share URL
+        shareUrlInput.value = shareUrl;
+        shareModal.classList.add("open");
+    } catch (err) {
+        alert("Failed to create share link");
+    }
+}
+
+function copyShareUrl(){
+    shareUrlInput.select();
+    document.execCommand('copy');
+    copyShareBtn.textContent = "Copied!";
+    setTimeout(() => {
+        copyShareBtn.textContent = "Copy";
+    }, 2000);
+}
+
 function setDeckList(){
+    // In share mode, don't show deck list
+    if (isShareMode) return;
+
     // Clear both deck lists
     decklist.innerHTML = "";
     mobileDecklist.innerHTML = "";
@@ -60,7 +180,9 @@ function setDeckList(){
     addDeckButton.classList.add("DeckButton");
     decklist.appendChild(addDeckButton);
     addDeckButton.onclick = () => {
-        data = [""].concat(data);
+        // Create new deck with UUID
+        const newDeck = { id: crypto.randomUUID(), text: "" };
+        data = [newDeck].concat(data);
         switchDeck(0)();
         closeMobileMenu();
     }
@@ -68,7 +190,8 @@ function setDeckList(){
     // Clone for mobile
     var mobileAddButton = addDeckButton.cloneNode(true);
     mobileAddButton.onclick = () => {
-        data = [""].concat(data);
+        const newDeck = { id: crypto.randomUUID(), text: "" };
+        data = [newDeck].concat(data);
         switchDeck(0)();
         closeMobileMenu();
     }
@@ -76,7 +199,7 @@ function setDeckList(){
 
     // Add each deckname as a button
     for(var i = 0; i < data.length; i++){
-        var deckname = data[i]?.split("\n")[0] || "Untitled";
+        var deckname = getDeckText(i).split("\n")[0] || "Untitled";
 
         const button = document.createElement("button")
         button.classList.add("DeckButton");
@@ -97,13 +220,31 @@ function setDeckList(){
         mobileDecklist.appendChild(mobileButton);
     }
 
+    // Add share button
+    var shareDeckButton = document.createElement("button")
+    shareDeckButton.innerHTML = "Share Deck"
+    shareDeckButton.id = "shareButton";
+    shareDeckButton.classList.add("DeckButton");
+    decklist.appendChild(shareDeckButton);
+    shareDeckButton.onclick = shareDeck;
+
+    // Clone share for mobile
+    var mobileShareButton = shareDeckButton.cloneNode(true);
+    mobileShareButton.id = "mobileShareButton";
+    mobileShareButton.onclick = () => {
+        shareDeck();
+        closeMobileMenu();
+    };
+    mobileDecklist.appendChild(mobileShareButton);
+
     // Add delete button
     var removeDeckButton = document.createElement("button")
     removeDeckButton.innerHTML = "Delete Current Deck"
     removeDeckButton.id = "deleteButton";
     decklist.appendChild(removeDeckButton);
     removeDeckButton.onclick = () => {
-        if(confirm(`Are you sure you want to delete your deck "${data[selectedDeck]?.split("\n")[0]}"? This action cannot be undone`)){
+        const deckName = getDeckText(selectedDeck).split("\n")[0] || "Untitled";
+        if(confirm(`Are you sure you want to delete your deck "${deckName}"? This action cannot be undone`)){
             data.splice(selectedDeck, 1);
             switchDeck(0)();
         }
@@ -113,7 +254,8 @@ function setDeckList(){
     var mobileDeleteButton = removeDeckButton.cloneNode(true);
     mobileDeleteButton.id = "mobileDeleteButton";
     mobileDeleteButton.onclick = () => {
-        if(confirm(`Are you sure you want to delete your deck "${data[selectedDeck]?.split("\n")[0]}"? This action cannot be undone`)){
+        const deckName = getDeckText(selectedDeck).split("\n")[0] || "Untitled";
+        if(confirm(`Are you sure you want to delete your deck "${deckName}"? This action cannot be undone`)){
             data.splice(selectedDeck, 1);
             switchDeck(0)();
             closeMobileMenu();
@@ -161,8 +303,15 @@ function display_card(cardData){
 
 var updateTimer;
 function updateData(newData){
-    if(newData){
-        data[selectedDeck] = newData;
+    if(newData !== undefined && newData !== null){
+        // Update deck text
+        if (isShareMode) {
+            data[selectedDeck] = newData;
+        } else {
+            if (data[selectedDeck]) {
+                data[selectedDeck].text = newData;
+            }
+        }
 
         if(updateTimer) clearTimeout(updateTimer);
         updateTimer = setTimeout(() => {
@@ -260,18 +409,24 @@ editor.oninput = () => {
     editor.style.height = "";
     editor.style.height = editor.scrollHeight + "px";
     updateData(editor.value);
-    setDeckList(editor.value);
+    setDeckList();
     save();
 }
 
 function switchDeck(index){
     return () => {
         selectedDeck = index;
-        editor.value = data[selectedDeck] || "";
-        setDeckList(editor.value);
-        updateData(data[selectedDeck]);
-        editor.style.height = "";
-        editor.style.height = editor.scrollHeight + "px";
+        const deckText = getDeckText(selectedDeck);
+        const deckId = getDeckId(selectedDeck);
+
+        if (!isShareMode) {
+            editor.value = deckText;
+            editor.style.height = "";
+            editor.style.height = editor.scrollHeight + "px";
+            updateUrl(deckId);
+        }
+        setDeckList();
+        updateData(deckText);
         save();
     }
 }
@@ -321,8 +476,38 @@ renderToggle.onclick = () => {
 };
 
 async function start(){
+    // Set up share mode UI
+    if (isShareMode) {
+        document.body.classList.add("share-mode");
+    }
+
+    // Set up share modal event listeners
+    if (closeShareModal) {
+        closeShareModal.onclick = () => {
+            shareModal.classList.remove("open");
+        };
+    }
+    if (copyShareBtn) {
+        copyShareBtn.onclick = copyShareUrl;
+    }
+    // Close modal when clicking outside
+    if (shareModal) {
+        shareModal.onclick = (e) => {
+            if (e.target === shareModal) {
+                shareModal.classList.remove("open");
+            }
+        };
+    }
+
     await load();
-    switchDeck(0)();
+
+    // Set initial URL state for history
+    if (!isShareMode && data.length > 0) {
+        const deckId = getDeckId(selectedDeck);
+        history.replaceState({ deckId }, '', deckId ? `/${currentUser}/${deckId}` : `/${currentUser}`);
+    }
+
+    switchDeck(selectedDeck)();
 }
 
 start();
