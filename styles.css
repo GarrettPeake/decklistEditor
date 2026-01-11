@@ -1,131 +1,589 @@
+/* ========================================
+   CSS Variables & Base Styles
+   ======================================== */
+:root {
+    --bg-primary: #1e1e24;
+    --bg-secondary: #2a2a32;
+    --bg-tertiary: #33333b;
+    --accent-primary: #7c5cbf;
+    --accent-hover: #9370db;
+    --text-primary: #f0f0f5;
+    --text-secondary: #b0b0c0;
+    --text-muted: #707080;
+    --danger: #c45c5c;
+    --danger-hover: #d67070;
+    --border-color: #404050;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.25s ease;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
 body {
     width: 100%;
-    height: 100%;
+    height: 100vh;
     display: flex;
     padding: 0;
     margin: 0;
-    background-color: rgb(51, 51, 59);
+    background-color: var(--bg-primary);
     overflow: hidden;
-    color: white;
-    font-size: x-large;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    line-height: 1.5;
 }
 
-#decks{
-    width: 15vw;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+/* ========================================
+   Mobile Header
+   ======================================== */
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 16px;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
 }
 
-#syncScroll{
-    height: 100vh;
-    max-height: 100vh;
-    display: flex;
-    flex-direction: row;
-    overflow-y: scroll;
+.mobile-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
 }
 
-button {
-    margin: 4px;
-    padding: 8px 16px;
-    border-radius: 99px;
-    background-color: grey;
+.mobile-menu-btn {
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.mobile-menu-btn:hover,
+.mobile-menu-btn:focus {
+    background-color: var(--bg-tertiary);
     outline: none;
 }
 
-button:hover{
-    outline: 4px solid rgb(108, 59, 151);
+.menu-icon {
+    width: 24px;
+    height: 24px;
 }
 
-#deleteButton{
-    color: black;
-    background-color: rgb(162, 71, 71);
-    border: none;
+/* ========================================
+   Mobile Dropdown
+   ======================================== */
+.mobile-dropdown {
+    display: none;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    max-height: 0;
+    overflow: hidden;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    z-index: 99;
+    transition: max-height var(--transition-normal);
+    box-shadow: var(--shadow-md);
 }
 
-#editor{
-    width: 20vw;
-    height: 100vh;
-    overflow-y: unset;
-    resize: none;
-    border: none;
-    background-color: inherit;
-    color: inherit;
-    font-size: inherit;
-    font-family: inherit;
+.mobile-dropdown.open {
+    max-height: 60vh;
+    overflow-y: auto;
 }
 
-#editor:focus{
-    border: 0 none #FFF;
-    outline:none;
-}
-
-#hovers{
-    width: 20vw;
-    height: 100vh;
+.mobile-decks-list {
+    padding: 8px;
     display: flex;
     flex-direction: column;
+    gap: 4px;
 }
 
-#display{
-    width: 45vw;
+/* ========================================
+   Sidebar (Desktop)
+   ======================================== */
+.sidebar {
+    position: relative;
+    width: 220px;
+    min-width: 220px;
+    height: 100vh;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    transition: width var(--transition-normal), min-width var(--transition-normal);
+    box-shadow: var(--shadow-sm);
+}
+
+.sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.sidebar.collapsed .deck-list {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sidebar-toggle {
+    position: absolute;
+    top: 50%;
+    right: -16px;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 48px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+    padding: 0;
+}
+
+.sidebar-toggle:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.toggle-icon {
+    width: 16px;
+    height: 16px;
+    transition: transform var(--transition-normal);
+}
+
+.sidebar.collapsed .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.deck-list {
+    flex: 1;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    transition: opacity var(--transition-fast);
+}
+
+/* ========================================
+   Buttons
+   ======================================== */
+button {
+    margin: 0;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+button:hover {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+button:focus {
+    outline: 2px solid var(--accent-hover);
+    outline-offset: 2px;
+}
+
+.DeckButton {
+    width: 100%;
+}
+
+.DeckButton.active {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+#deleteButton {
+    margin-top: auto;
+    background-color: transparent;
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+#deleteButton:hover {
+    background-color: var(--danger);
+    color: white;
+}
+
+/* ========================================
+   Main Content Area
+   ======================================== */
+.main-content {
+    flex: 1;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.editor-container {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    max-width: 50%;
+    overflow-y: auto;
+    background-color: var(--bg-primary);
+}
+
+.editor-textarea {
+    flex: 1;
+    min-width: 45%;
+    padding: 24px;
+    resize: none;
+    border: none;
+    background-color: transparent;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    line-height: 1.6;
+}
+
+.editor-textarea:focus {
+    outline: none;
+}
+
+.editor-textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.card-links {
+    flex: 1;
+    min-width: 45%;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-left: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+}
+
+.card-display {
+    width: 50%;
     height: 100vh;
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    background-color: var(--bg-tertiary);
+    background-image:
+        radial-gradient(circle at 20% 80%, rgba(124, 92, 191, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(124, 92, 191, 0.08) 0%, transparent 50%);
 }
 
+/* ========================================
+   Card Images
+   ======================================== */
+.oneCard {
+    max-width: 90%;
+    max-height: 85vh;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    transition: transform var(--transition-normal);
+}
+
+.oneCard:hover {
+    transform: scale(1.02);
+}
+
+.twoCard {
+    max-width: 45%;
+    max-height: 80vh;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    transition: transform var(--transition-normal);
+}
+
+.twoCard:hover {
+    transform: scale(1.02);
+}
+
+/* ========================================
+   Links & Text
+   ======================================== */
 a {
-    color: rgb(199, 199, 255);
-    font-size: inherit;
-    font-family: inherit;
+    color: var(--accent-hover);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+a:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
 }
 
 p {
-    display: inline;
+    display: block;
     margin: 0;
-    padding: 0;
+    padding: 2px 0;
 }
 
-.header{
-    font-size: inherit;
-    font-family: inherit;
+.header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-top: 12px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-color);
 }
 
-.oneCard{
-    width: 40vw;
-    max-height: 90vh;
+.unfoundCard {
+    color: var(--danger);
 }
 
-.twoCard{
-    width: 22vw;
+.CardLink {
+    cursor: pointer;
 }
 
-.unfoundCard{
-    color: rgb(194, 97, 97);
+.deck-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 2px solid var(--accent-primary);
 }
 
+.card-image-clickable {
+    cursor: pointer;
+}
+
+#mobileDeleteButton {
+    margin-top: 8px;
+    background-color: transparent;
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+#mobileDeleteButton:hover {
+    background-color: var(--danger);
+    color: white;
+}
+
+/* ========================================
+   Scrollbar Styling
+   ======================================== */
 .scrollable::-webkit-scrollbar {
-    width: 10px;
-  }
+    width: 8px;
+}
 
 .scrollable::-webkit-scrollbar-track {
-    background: none;
-    border-radius: 10px;
+    background: transparent;
 }
 
 .scrollable::-webkit-scrollbar-thumb {
-    background: rgb(170, 170, 170);
-    border-radius: 99px;
+    background: var(--text-muted);
+    border-radius: var(--radius-full);
 }
 
 .scrollable::-webkit-scrollbar-thumb:hover {
-    background: rgb(61, 61, 61);
-    border-radius: 10px;
+    background: var(--text-secondary);
 }
 
-.scrollable::-webkit-scrollbar-thumb:active {
-    background: rgb(68, 68, 68);
-    border-radius: 10px;
+/* ========================================
+   Mobile Render Toggle Button
+   ======================================== */
+.render-toggle {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border-radius: var(--radius-full);
+    background-color: var(--accent-primary);
+    border: none;
+    color: white;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.render-toggle:hover {
+    background-color: var(--accent-hover);
+    transform: scale(1.05);
+}
+
+.render-toggle.active {
+    background-color: var(--danger);
+}
+
+.render-icon {
+    width: 24px;
+    height: 24px;
+}
+
+/* ========================================
+   Mobile Styles
+   ======================================== */
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+
+    .mobile-header {
+        display: flex;
+    }
+
+    .mobile-dropdown {
+        display: block;
+    }
+
+    .sidebar {
+        display: none;
+    }
+
+    .main-content {
+        flex-direction: column;
+        margin-top: 56px;
+        height: calc(100vh - 56px);
+    }
+
+    /* Mobile Edit Mode (default) */
+    .editor-container {
+        max-width: 100%;
+        flex-direction: column;
+    }
+
+    .editor-textarea {
+        width: 100%;
+        min-height: calc(100vh - 56px - 80px);
+        padding: 16px;
+    }
+
+    .card-links {
+        display: none;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .card-display {
+        display: none;
+        width: 100%;
+        height: 20vh;
+        padding: 12px;
+    }
+
+    /* Mobile Render Mode */
+    body.render-mode .editor-textarea {
+        display: none;
+    }
+
+    body.render-mode .card-links {
+        display: flex;
+        flex: 1;
+        min-width: 100%;
+        overflow-y: auto;
+        padding: 16px;
+    }
+
+    body.render-mode .card-display {
+        display: flex;
+        height: 25vh;
+        min-height: 25vh;
+        order: -1;
+    }
+
+    body.render-mode .editor-container {
+        flex-direction: column-reverse;
+        height: calc(100vh - 56px);
+    }
+
+    .render-toggle {
+        display: flex;
+    }
+
+    .oneCard,
+    .twoCard {
+        max-height: 100%;
+        max-width: auto;
+    }
+
+    .twoCard {
+        max-width: 48%;
+    }
+
+    /* Mobile card link tap styling */
+    .CardLink.selected {
+        background-color: var(--accent-primary);
+        padding: 2px 6px;
+        border-radius: var(--radius-sm);
+        color: white;
+    }
+}
+
+/* ========================================
+   Tablet Adjustments
+   ======================================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .sidebar {
+        width: 180px;
+        min-width: 180px;
+    }
+
+    .card-display {
+        width: 45%;
+    }
+
+    .editor-container {
+        max-width: 55%;
+    }
+}
+
+/* ========================================
+   Large Desktop
+   ======================================== */
+@media (min-width: 1400px) {
+    .sidebar {
+        width: 260px;
+        min-width: 260px;
+    }
+
+    .editor-textarea,
+    .card-links {
+        padding: 32px;
+    }
 }

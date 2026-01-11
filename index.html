@@ -8,12 +8,49 @@
         <title>Deck Editor</title>
     </head>
     <body>
-        <div id="decks" class="scrollable"></div>
-        <div id="syncScroll" class="scrollable">
-            <textarea spellcheck="false" id="editor" placeholder="Start typing here to create a new deck. The first line is the title&#13;&#10;&#13;&#10;Card links will appear to the right as you type. Click a link to open the card's scryfall page or just hover over it to see the card&#13;&#10;&#13;&#10;You can add section headers like #header and card quantities like '4x Rat'"></textarea>
-            <span id="hovers" ></span>
+        <!-- Mobile Header -->
+        <header class="mobile-header">
+            <h1 class="mobile-title">Deck Editor</h1>
+            <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Open deck menu">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Mobile Deck Dropdown -->
+        <div id="mobileDropdown" class="mobile-dropdown">
+            <div id="mobileDecks" class="mobile-decks-list"></div>
         </div>
-        <div id="display"></div>
+
+        <!-- Desktop Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle sidebar">
+                <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </button>
+            <div id="decks" class="scrollable deck-list"></div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main id="mainContent" class="main-content">
+            <div id="syncScroll" class="scrollable editor-container">
+                <textarea spellcheck="false" id="editor" class="editor-textarea" placeholder="Start typing here to create a new deck. The first line is the title&#13;&#10;&#13;&#10;Card links will appear to the right as you type. Click a link to open the card's scryfall page or just hover over it to see the card&#13;&#10;&#13;&#10;You can add section headers like #header and card quantities like '4x Rat'"></textarea>
+                <span id="hovers" class="card-links"></span>
+            </div>
+            <div id="display" class="card-display"></div>
+        </main>
+
+        <!-- Mobile Render Toggle Button -->
+        <button id="renderToggle" class="render-toggle" aria-label="Toggle render view">
+            <svg class="render-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+        </button>
     </body>
     <script src="script.js"></script>
 </html>
