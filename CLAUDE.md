@@ -63,53 +63,81 @@ The Worker serves as the backend API and static asset server.
 
 The frontend manages deck editing, card lookups, and UI interactions.
 
-**Core Data Model**:
+**Core State Variables**:
 - `data`: Array of deck strings (one per deck)
 - `link_cache`: Object caching Scryfall card lookups
 - `selectedDeck`: Index of currently active deck
+- `isMobile`: Boolean tracking viewport width (≤768px)
+- `isRenderMode`: Boolean for mobile render/edit mode toggle
 
 **Key Functions**:
 
-- `load()` (script.js:5-12): Fetches user data from API on startup
-- `save()` (script.js:14-25): Debounced save to API (500ms delay)
-- `setDeckList()` (script.js:27-62): Renders deck selection sidebar
-- `updateData()` (script.js:82-142): Parses deck text and displays card links
-- `get_card()` (script.js:144-157): Fetches card data from Scryfall API
-- `display_card()` (script.js:64-80): Shows card images on hover
-- `switchDeck()` (script.js:173-183): Changes active deck
+- `load()` (script.js:32-38): Fetches user data from API on startup
+- `save()` (script.js:40-50): Debounced save to API (500ms delay)
+- `setDeckList()` (script.js:52-123): Renders deck selection in both desktop sidebar and mobile dropdown
+- `updateData()` (script.js:162-243): Parses deck text and displays card links with platform-specific interactions
+- `get_card()` (script.js:245-257): Fetches card data from Scryfall API
+- `display_card()` (script.js:125-160): Shows card images with mobile tap-to-open support
+- `switchDeck()` (script.js:267-277): Changes active deck
+- `updateRenderToggleIcon()` (script.js:304-315): Updates mobile toggle button icon
 
 **User Interactions**:
 - Text editing triggers automatic deck parsing and save
 - Card names are auto-linked to Scryfall pages
-- Hovering over card names displays card images
-- Click links to open Scryfall pages in new tabs
+- **Desktop**: Hover over card names to display images, click to open Scryfall
+- **Mobile**: Tap card names to display images, tap images to open Scryfall
 
 ### 3. User Interface (`index.html`)
 
-Three-column layout:
-1. **Left Sidebar** (`#decks`): Deck list with add/delete buttons
-2. **Center Panel** (`#syncScroll`): Text editor and card link display
-3. **Right Panel** (`#display`): Card image preview area
+**Desktop Layout** (4-column):
+1. **Collapsible Sidebar** (`.sidebar`): Deck list with add/delete buttons, toggle button to collapse
+2. **Text Editor** (`.editor-textarea`): Deck text input area
+3. **Card Links** (`.card-links`): Rendered card list with Scryfall links
+4. **Card Display** (`.card-display`): Card image preview area
 
-**Editor Features** (index.html:13):
+**Mobile Layout** (≤768px):
+1. **Header Bar** (`.mobile-header`): Title and hamburger menu button
+2. **Dropdown Menu** (`.mobile-dropdown`): Deck selection dropdown from header
+3. **Content Area**: Either editor (default) or rendered view
+4. **Render Toggle** (`.render-toggle`): Floating button to switch between edit/render modes
+
+**Mobile Render Mode**:
+- Top 25% shows card art display
+- Bottom 75% shows rendered card list
+- Tap card name to show its art
+- Tap card art to open Scryfall
+
+**Editor Features** (index.html:38-39):
 - Spellcheck disabled for card names
 - Placeholder instructions for new users
 - Auto-expanding textarea based on content
 
 ### 4. Styling (`styles.css`)
 
-**Design Characteristics**:
-- Dark theme (background: rgb(51, 51, 59))
-- Three-column flexbox layout
-- Custom scrollbar styling
-- Responsive card image display
-- Purple hover states for interactive elements
+**CSS Custom Properties** (styles.css:4-24):
+- `--bg-primary`: Main background (#1e1e24)
+- `--bg-secondary`: Sidebar/panels (#2a2a32)
+- `--bg-tertiary`: Elevated elements (#33333b)
+- `--accent-primary`: Purple accent (#7c5cbf)
+- `--accent-hover`: Hover state (#9370db)
+- `--danger`: Delete/error states (#c45c5c)
+- `--transition-fast/normal`: Animation timing
+- `--radius-sm/md/lg/full`: Border radius values
+- `--shadow-sm/md/lg`: Box shadow values
 
-**Layout Proportions**:
-- Deck list: 15vw
-- Editor: 20vw
-- Card links: 20vw
-- Card display: 45vw
+**Design Characteristics**:
+- Modern dark theme with CSS variables
+- Flexbox-based responsive layout
+- Smooth transitions and subtle shadows
+- Custom WebKit scrollbar styling
+- Gradient background on card display area
+- System font stack for better performance
+
+**Responsive Breakpoints**:
+- **Mobile** (≤768px): Single column, header with dropdown, floating render toggle
+- **Tablet** (769-1024px): Narrower sidebar (180px), adjusted proportions
+- **Desktop** (>1024px): Full 4-column layout with collapsible sidebar (220px)
+- **Large Desktop** (≥1400px): Wider sidebar (260px), increased padding
 
 ### 5. Cloudflare Configuration (`wrangler.toml`)
 
@@ -225,8 +253,10 @@ This starts a local development server with hot reloading.
 
 - Modern browsers with ES6+ support required
 - Uses Fetch API (no polyfills included)
-- Flexbox-based layout
+- Flexbox-based responsive layout
 - Custom scrollbar styling (WebKit only)
+- Mobile-responsive with touch interactions
+- Tested breakpoints: 768px (mobile), 1024px (tablet), 1400px (large desktop)
 
 ### Security Considerations
 
@@ -264,15 +294,26 @@ This starts a local development server with hot reloading.
 
 ## User Workflow
 
+### Desktop Workflow
 1. Navigate to `https://yourworker.workers.dev/{username}`
 2. Click "+ Add Deck" to create first deck
 3. Type deck name on first line
 4. Add cards line by line (optional quantity prefix)
 5. Add section headers with `#` prefix
-6. Hover over card names to preview
+6. Hover over card names to preview images
 7. Click card links to view on Scryfall
-8. Switch decks using sidebar buttons
-9. Delete unwanted decks with confirmation
+8. Use sidebar toggle (chevron) to collapse/expand deck list
+9. Switch decks using sidebar buttons
+10. Delete unwanted decks with confirmation
+
+### Mobile Workflow
+1. Navigate to `https://yourworker.workers.dev/{username}`
+2. Tap hamburger menu (top right) to open deck dropdown
+3. Select a deck or tap "+ Add Deck"
+4. Edit deck text in the editor (default view)
+5. Tap floating grid button (bottom right) to switch to render mode
+6. In render mode: tap card names to show art, tap art to open Scryfall
+7. Tap pencil button to return to edit mode
 
 ## Deck Format Example
 
@@ -298,7 +339,6 @@ My Burn Deck
 - Import from popular deck sites
 - Deck statistics (mana curve, color distribution)
 - Card price integration
-- Mobile-responsive design improvements
 - Drag-and-drop deck reordering
 - Deck categorization and search
 - Share/collaboration features
@@ -318,8 +358,10 @@ My Burn Deck
 - Clear localStorage cache if stale
 
 **Layout issues**:
-- Ensure viewport width is sufficient (minimum ~1000px recommended)
+- Desktop: Use sidebar toggle if content feels cramped
+- Mobile: Use render toggle button to switch between edit/view modes
 - Check browser developer tools for CSS errors
+- Ensure viewport meta tag is present for proper mobile scaling
 
 ## Repository History
 
