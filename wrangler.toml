@@ -6,6 +6,8 @@ account_id = "5af9bf2be24dfe756af55b3bbd542e57"
 [assets]
 directory = "."
 binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
 
 [[kv_namespaces]]
 binding = "DECKLISTEDITOR"
