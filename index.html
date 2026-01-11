@@ -8,6 +8,23 @@
         <title>Decklister</title>
     </head>
     <body>
+        <!-- Blueprint Grid Overlay -->
+        <div class="grid-overlay"></div>
+
+        <!-- Corner Brackets -->
+        <div class="corner-brackets">
+            <div class="corner-bracket tl"></div>
+            <div class="corner-bracket tr"></div>
+            <div class="corner-bracket bl"></div>
+            <div class="corner-bracket br"></div>
+        </div>
+
+        <!-- Connection Line (shown on hover) -->
+        <div class="connection-line" id="connectionLine">
+            <div class="connection-dot start"></div>
+            <div class="connection-dot end"></div>
+        </div>
+
         <!-- Landing Page -->
         <div id="landingPage" class="landing-page">
             <div class="landing-content">
@@ -78,7 +95,21 @@
                 </div>
                 <!-- Resize handle for card-display -->
                 <div id="displayResizer" class="resize-handle display-resizer"></div>
-                <div id="display" class="card-display"></div>
+                <div id="display" class="card-display">
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-state-icon">⬡</div>
+                        <div>Hover card to display</div>
+                    </div>
+                    <div class="card-preview-container" id="cardPreviewContainer">
+                        <div class="blueprint-lines">
+                            <div class="blueprint-line horizontal top"></div>
+                            <div class="blueprint-line horizontal bottom"></div>
+                            <div class="blueprint-line vertical left"></div>
+                            <div class="blueprint-line vertical right"></div>
+                        </div>
+                        <div id="cardImagesContainer"></div>
+                    </div>
+                </div>
             </main>
         </div>
 
