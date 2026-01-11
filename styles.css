@@ -266,7 +266,7 @@ body.landing-mode .sidebar-expand {
     display: none;
     position: fixed;
     left: 0;
-    top: 50%;
+    top: calc(var(--header-height) + 50%);
     transform: translateY(-50%);
     width: 24px;
     height: 48px;
@@ -303,8 +303,9 @@ body.landing-mode .sidebar-expand {
 .sidebar {
     position: relative;
     width: 220px;
-    min-width: 220px;
-    height: calc(100vh - var(--header-height));
+    min-width: 150px;
+    max-width: 400px;
+    height: 100%;
     background-color: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -315,14 +316,19 @@ body.landing-mode .sidebar-expand {
 }
 
 .sidebar.collapsed {
-    width: 0;
-    min-width: 0;
+    width: 0 !important;
+    min-width: 0 !important;
     overflow: hidden;
+    border-right: none;
 }
 
 .sidebar.collapsed .deck-list {
     opacity: 0;
     pointer-events: none;
+}
+
+.sidebar.collapsed .sidebar-resizer {
+    display: none;
 }
 
 .sidebar-toggle {
@@ -496,14 +502,16 @@ button:focus {
    ======================================== */
 .app-container {
     display: flex;
+    flex-direction: row;
     flex: 1;
     overflow: hidden;
+    height: calc(100vh - var(--header-height));
 }
 
 .main-content {
     flex: 1;
     display: flex;
-    height: calc(100vh - var(--header-height));
+    height: 100%;
     overflow: hidden;
     position: relative;
 }
@@ -512,7 +520,6 @@ button:focus {
     display: flex;
     flex-direction: row;
     flex: 1;
-    max-width: 50%;
     overflow-y: auto;
     background-color: var(--bg-primary);
     position: relative;
@@ -551,7 +558,8 @@ button:focus {
 }
 
 .card-display {
-    width: 50%;
+    width: 35%;
+    min-width: 250px;
     height: 100%;
     display: flex;
     flex-direction: row;
@@ -563,6 +571,7 @@ button:focus {
     background-image:
         radial-gradient(circle at 20% 80%, rgba(124, 92, 191, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(124, 92, 191, 0.08) 0%, transparent 50%);
+    flex-shrink: 0;
 }
 
 /* ========================================
@@ -581,31 +590,29 @@ button:focus {
 }
 
 .sidebar-resizer {
-    left: 0;
+    right: 0;
     top: 0;
     bottom: 0;
-    width: 4px;
+    width: 6px;
     cursor: col-resize;
 }
 
 .editor-resizer {
-    right: 50%;
+    left: 50%;
     top: 0;
     bottom: 0;
-    width: 4px;
+    width: 6px;
     cursor: col-resize;
-    position: absolute;
-    transform: translateX(50%);
+    transform: translateX(-50%);
     z-index: 25;
 }
 
 .display-resizer {
-    left: 50%;
+    left: 0;
     top: 0;
     bottom: 0;
-    width: 4px;
+    width: 6px;
     cursor: col-resize;
-    transform: translateX(-50%);
 }
 
 /* ========================================
@@ -774,6 +781,12 @@ p {
         display: block;
     }
 
+    .app-container {
+        flex-direction: column;
+        height: calc(100vh - 56px);
+        margin-top: 56px;
+    }
+
     .sidebar {
         display: none;
     }
@@ -784,25 +797,26 @@ p {
 
     .main-content {
         flex-direction: column;
-        margin-top: 56px;
-        height: calc(100vh - 56px);
+        height: 100%;
     }
 
-    /* Hide resize handles on mobile except editor */
+    /* Hide resize handles on mobile */
     .sidebar-resizer,
-    .display-resizer {
+    .display-resizer,
+    .editor-resizer {
         display: none;
     }
 
     /* Mobile Edit Mode (default) */
     .editor-container {
-        max-width: 100%;
         flex-direction: column;
+        height: 100%;
     }
 
     .editor-textarea {
         width: 100%;
-        min-height: calc(100vh - 56px - 80px);
+        flex: 1;
+        min-height: 200px;
         padding: 16px;
     }
 
@@ -815,6 +829,7 @@ p {
     .card-display {
         display: none;
         width: 100%;
+        min-width: 100%;
         height: 20vh;
         padding: 12px;
     }
@@ -841,7 +856,7 @@ p {
 
     body.render-mode .editor-container {
         flex-direction: column-reverse;
-        height: calc(100vh - 56px);
+        height: 100%;
     }
 
     .render-toggle {
@@ -899,15 +914,11 @@ p {
 @media (min-width: 769px) and (max-width: 1024px) {
     .sidebar {
         width: 180px;
-        min-width: 180px;
     }
 
     .card-display {
-        width: 45%;
-    }
-
-    .editor-container {
-        max-width: 55%;
+        width: 30%;
+        min-width: 200px;
     }
 
     .bookmark-warning span {
@@ -1082,12 +1093,8 @@ body.share-mode .editor-resizer {
     display: none;
 }
 
-body.share-mode .editor-container {
-    max-width: 50%;
-}
-
 body.share-mode .card-links {
-    min-width: 100%;
+    flex: 1;
     border-left: none;
 }
 
@@ -1106,14 +1113,17 @@ body.share-mode .mobile-menu-btn {
         justify-content: center;
     }
 
-    body.share-mode .main-content {
+    body.share-mode .app-container {
         margin-top: 56px;
         height: calc(100vh - 56px);
+    }
+
+    body.share-mode .main-content {
         flex-direction: column-reverse;
+        height: 100%;
     }
 
     body.share-mode .editor-container {
-        max-width: 100%;
         flex-direction: column-reverse;
         height: 100%;
     }
@@ -1128,5 +1138,7 @@ body.share-mode .mobile-menu-btn {
         display: flex;
         height: 30vh;
         min-height: 30vh;
+        width: 100%;
+        min-width: 100%;
     }
 }
