@@ -4,7 +4,7 @@
   "description": "",
   "main": "script.js",
   "scripts": {
-    "deploy": "wrangler pages deploy ."
+    "deploy": "wrangler deploy"
   },
   "author": "Garrett Peake",
   "license": "MIT"
