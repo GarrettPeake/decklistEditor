@@ -5,6 +5,10 @@ var isMobile = window.innerWidth <= 768;
 var isRenderMode = false;
 var currentCardData = null;
 
+// Share mode detection
+var isShareMode = window.location.pathname.startsWith('/share/');
+var shareId = isShareMode ? window.location.pathname.split('/share/')[1] : null;
+
 // DOM Elements
 var editor = document.getElementById("editor");
 var decklist = document.getElementById("decks");
@@ -16,6 +20,10 @@ var sidebarToggle = document.getElementById("sidebarToggle");
 var mobileMenuBtn = document.getElementById("mobileMenuBtn");
 var mobileDropdown = document.getElementById("mobileDropdown");
 var renderToggle = document.getElementById("renderToggle");
+var shareModal = document.getElementById("shareModal");
+var shareUrlInput = document.getElementById("shareUrl");
+var copyShareBtn = document.getElementById("copyShareBtn");
+var closeShareModal = document.getElementById("closeShareModal");
 
 // Update mobile detection on resize
 window.addEventListener("resize", () => {
@@ -30,15 +38,30 @@ window.addEventListener("resize", () => {
 });
 
 async function load(){
-    await fetch(`/api${window.location.pathname}`)
-    .then(e => e.json()).then(js => {
-        data = js;
-    })
+    if (isShareMode) {
+        // Load shared deck
+        const response = await fetch(`/api/share/${shareId}`);
+        if (response.ok) {
+            const deckText = await response.text();
+            data = [deckText];
+        } else {
+            data = ["# Shared deck not found"];
+        }
+    } else {
+        // Load user decks
+        await fetch(`/api${window.location.pathname}`)
+        .then(e => e.json()).then(js => {
+            data = js;
+        })
+    }
     link_cache = JSON.parse(localStorage.getItem("link_cache")) || {};
 }
 
 var saveTimer;
 async function save(){
+    // Don't save in share mode
+    if (isShareMode) return;
+
     if(saveTimer) clearTimeout(saveTimer);
         saveTimer = setTimeout(() => {
             fetch(`/api${window.location.pathname}`, {
@@ -49,7 +72,42 @@ async function save(){
     localStorage.setItem("link_cache", JSON.stringify(link_cache));
 }
 
+async function shareDeck(){
+    const deckText = data[selectedDeck];
+    if (!deckText) {
+        alert("No deck to share");
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/share', {
+            method: 'POST',
+            body: deckText
+        });
+        const result = await response.json();
+        const shareUrl = `${window.location.origin}/share/${result.uuid}`;
+
+        // Show modal with share URL
+        shareUrlInput.value = shareUrl;
+        shareModal.classList.add("open");
+    } catch (err) {
+        alert("Failed to create share link");
+    }
+}
+
+function copyShareUrl(){
+    shareUrlInput.select();
+    document.execCommand('copy');
+    copyShareBtn.textContent = "Copied!";
+    setTimeout(() => {
+        copyShareBtn.textContent = "Copy";
+    }, 2000);
+}
+
 function setDeckList(){
+    // In share mode, don't show deck list
+    if (isShareMode) return;
+
     // Clear both deck lists
     decklist.innerHTML = "";
     mobileDecklist.innerHTML = "";
@@ -96,6 +154,23 @@ function setDeckList(){
         };
         mobileDecklist.appendChild(mobileButton);
     }
+
+    // Add share button
+    var shareDeckButton = document.createElement("button")
+    shareDeckButton.innerHTML = "Share Deck"
+    shareDeckButton.id = "shareButton";
+    shareDeckButton.classList.add("DeckButton");
+    decklist.appendChild(shareDeckButton);
+    shareDeckButton.onclick = shareDeck;
+
+    // Clone share for mobile
+    var mobileShareButton = shareDeckButton.cloneNode(true);
+    mobileShareButton.id = "mobileShareButton";
+    mobileShareButton.onclick = () => {
+        shareDeck();
+        closeMobileMenu();
+    };
+    mobileDecklist.appendChild(mobileShareButton);
 
     // Add delete button
     var removeDeckButton = document.createElement("button")
@@ -267,11 +342,13 @@ editor.oninput = () => {
 function switchDeck(index){
     return () => {
         selectedDeck = index;
-        editor.value = data[selectedDeck] || "";
+        if (!isShareMode) {
+            editor.value = data[selectedDeck] || "";
+            editor.style.height = "";
+            editor.style.height = editor.scrollHeight + "px";
+        }
         setDeckList(editor.value);
         updateData(data[selectedDeck]);
-        editor.style.height = "";
-        editor.style.height = editor.scrollHeight + "px";
         save();
     }
 }
@@ -321,6 +398,29 @@ renderToggle.onclick = () => {
 };
 
 async function start(){
+    // Set up share mode UI
+    if (isShareMode) {
+        document.body.classList.add("share-mode");
+    }
+
+    // Set up share modal event listeners
+    if (closeShareModal) {
+        closeShareModal.onclick = () => {
+            shareModal.classList.remove("open");
+        };
+    }
+    if (copyShareBtn) {
+        copyShareBtn.onclick = copyShareUrl;
+    }
+    // Close modal when clicking outside
+    if (shareModal) {
+        shareModal.onclick = (e) => {
+            if (e.target === shareModal) {
+                shareModal.classList.remove("open");
+            }
+        };
+    }
+
     await load();
     switchDeck(0)();
 }

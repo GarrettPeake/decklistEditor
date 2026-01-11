@@ -587,3 +587,179 @@ p {
         padding: 32px;
     }
 }
+
+/* ========================================
+   Share Button
+   ======================================== */
+#shareButton,
+#mobileShareButton {
+    background-color: transparent;
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+#shareButton:hover,
+#mobileShareButton:hover {
+    background-color: var(--accent-primary);
+    color: white;
+}
+
+#mobileShareButton {
+    margin-top: 8px;
+}
+
+/* ========================================
+   Share Modal
+   ======================================== */
+.share-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.share-modal.open {
+    display: flex;
+}
+
+.share-modal-content {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    max-width: 500px;
+    width: 90%;
+    position: relative;
+    box-shadow: var(--shadow-lg);
+}
+
+.share-modal-content h2 {
+    margin: 0 0 8px 0;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+}
+
+.share-modal-content p {
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.share-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+}
+
+.share-modal-close:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.share-url-container {
+    display: flex;
+    gap: 8px;
+}
+
+.share-url-input {
+    flex: 1;
+    padding: 12px 16px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+}
+
+.share-url-input:focus {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 0;
+}
+
+.copy-share-btn {
+    padding: 12px 24px;
+    background-color: var(--accent-primary);
+    border: none;
+    white-space: nowrap;
+}
+
+.copy-share-btn:hover {
+    background-color: var(--accent-hover);
+}
+
+/* ========================================
+   Share Mode (Read-only view)
+   ======================================== */
+body.share-mode .sidebar {
+    display: none;
+}
+
+body.share-mode .mobile-header {
+    display: none;
+}
+
+body.share-mode .mobile-dropdown {
+    display: none;
+}
+
+body.share-mode .render-toggle {
+    display: none !important;
+}
+
+body.share-mode .editor-textarea {
+    display: none;
+}
+
+body.share-mode .editor-container {
+    max-width: 50%;
+}
+
+body.share-mode .card-links {
+    min-width: 100%;
+    border-left: none;
+}
+
+/* Share mode mobile adjustments */
+@media (max-width: 768px) {
+    body.share-mode .main-content {
+        margin-top: 0;
+        height: 100vh;
+        flex-direction: column-reverse;
+    }
+
+    body.share-mode .editor-container {
+        max-width: 100%;
+        flex-direction: column-reverse;
+        height: 100vh;
+    }
+
+    body.share-mode .card-links {
+        display: flex;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    body.share-mode .card-display {
+        display: flex;
+        height: 30vh;
+        min-height: 30vh;
+    }
+}

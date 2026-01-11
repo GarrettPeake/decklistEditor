@@ -51,6 +51,19 @@
                 <rect x="14" y="14" width="7" height="7" rx="1"/>
             </svg>
         </button>
+
+        <!-- Share Modal -->
+        <div id="shareModal" class="share-modal">
+            <div class="share-modal-content">
+                <button id="closeShareModal" class="share-modal-close" aria-label="Close modal">&times;</button>
+                <h2>Share Deck</h2>
+                <p>Copy this link to share your deck:</p>
+                <div class="share-url-container">
+                    <input type="text" id="shareUrl" class="share-url-input" readonly>
+                    <button id="copyShareBtn" class="copy-share-btn">Copy</button>
+                </div>
+            </div>
+        </div>
     </body>
     <script src="script.js"></script>
 </html>
