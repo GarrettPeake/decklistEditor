@@ -527,36 +527,39 @@ var currentResizer = null;
 var startX = 0;
 var startY = 0;
 var startWidth = 0;
-var startHeight = 0;
+var startDisplayWidth = 0;
 
 function loadPanelSizes() {
     const savedSizes = JSON.parse(localStorage.getItem("decklister_panel_sizes") || "{}");
 
     if (savedSizes.sidebarWidth && sidebar) {
         sidebar.style.width = savedSizes.sidebarWidth + "px";
-        sidebar.style.minWidth = savedSizes.sidebarWidth + "px";
     }
-    if (savedSizes.editorWidth && editor) {
-        editor.style.minWidth = savedSizes.editorWidth + "%";
-        editor.style.flex = "0 0 " + savedSizes.editorWidth + "%";
+    if (savedSizes.editorFlex && editor) {
+        editor.style.flex = "0 0 " + savedSizes.editorFlex + "%";
     }
     if (savedSizes.displayWidth && dispArea) {
-        dispArea.style.width = savedSizes.displayWidth + "%";
+        dispArea.style.width = savedSizes.displayWidth + "px";
     }
 }
 
 function savePanelSizes() {
     const sizes = {};
-    if (sidebar) {
-        sizes.sidebarWidth = parseInt(sidebar.style.width) || 220;
+    if (sidebar && sidebar.offsetWidth > 0) {
+        sizes.sidebarWidth = sidebar.offsetWidth;
     }
     if (editor) {
-        const editorWidth = parseFloat(editor.style.minWidth) || 45;
-        sizes.editorWidth = editorWidth;
+        // Extract percentage from flex basis
+        const flexValue = editor.style.flex;
+        if (flexValue) {
+            const match = flexValue.match(/[\d.]+%/);
+            if (match) {
+                sizes.editorFlex = parseFloat(match[0]);
+            }
+        }
     }
-    if (dispArea) {
-        const displayWidth = parseFloat(dispArea.style.width) || 50;
-        sizes.displayWidth = displayWidth;
+    if (dispArea && dispArea.offsetWidth > 0) {
+        sizes.displayWidth = dispArea.offsetWidth;
     }
     localStorage.setItem("decklister_panel_sizes", JSON.stringify(sizes));
 }
@@ -578,6 +581,7 @@ function initResizers() {
     // Editor resizer (between editor and card-links)
     if (editorResizer) {
         editorResizer.addEventListener("mousedown", (e) => {
+            if (isMobile) return;
             isResizing = true;
             currentResizer = "editor";
             startX = e.clientX;
@@ -595,6 +599,7 @@ function initResizers() {
             currentResizer = "display";
             startX = e.clientX;
             startWidth = editorContainer.offsetWidth;
+            startDisplayWidth = dispArea.offsetWidth;
             document.body.classList.add("resizing");
             e.preventDefault();
         });
@@ -604,9 +609,8 @@ function initResizers() {
     [sidebarResizer, editorResizer, displayResizer].forEach(resizer => {
         if (!resizer) return;
         resizer.addEventListener("touchstart", (e) => {
+            if (isMobile) return;
             const resizerType = resizer.id.replace("Resizer", "");
-            if (resizerType === "sidebar" && isMobile) return;
-            if (resizerType === "display" && isMobile) return;
 
             isResizing = true;
             currentResizer = resizerType;
@@ -619,6 +623,7 @@ function initResizers() {
                 startWidth = editor.offsetWidth;
             } else if (currentResizer === "display") {
                 startWidth = editorContainer.offsetWidth;
+                startDisplayWidth = dispArea.offsetWidth;
             }
 
             document.body.classList.add("resizing");
@@ -647,19 +652,15 @@ function handleResize(e) {
     if (currentResizer === "sidebar") {
         const newWidth = Math.max(150, Math.min(400, startWidth + deltaX));
         sidebar.style.width = newWidth + "px";
-        sidebar.style.minWidth = newWidth + "px";
     } else if (currentResizer === "editor") {
         const containerWidth = editorContainer.offsetWidth;
         const newEditorWidth = startWidth + deltaX;
         const percentage = Math.max(20, Math.min(80, (newEditorWidth / containerWidth) * 100));
-        editor.style.minWidth = percentage + "%";
         editor.style.flex = "0 0 " + percentage + "%";
     } else if (currentResizer === "display") {
-        const totalWidth = mainContent.offsetWidth;
-        const newContainerWidth = startWidth + deltaX;
-        const percentage = Math.max(30, Math.min(70, (newContainerWidth / totalWidth) * 100));
-        editorContainer.style.maxWidth = percentage + "%";
-        dispArea.style.width = (100 - percentage) + "%";
+        // Resize both editor container and display area
+        const newDisplayWidth = Math.max(200, Math.min(600, startDisplayWidth - deltaX));
+        dispArea.style.width = newDisplayWidth + "px";
     }
 }
 
