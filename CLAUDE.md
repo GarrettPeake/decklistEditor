@@ -6,7 +6,7 @@ Decklist Editor is a web-based application for creating, managing, and organizin
 
 **Author**: Garrett Peake
 **License**: MIT
-**Version**: 1.0.0
+**Version**: 1.1.0
 
 ## Architecture Overview
 
@@ -39,47 +39,89 @@ decklistEditor/
 The Worker serves as the backend API and static asset server.
 
 **Key Features**:
-- Handles API routes under `/api/{user}`
+- Handles API routes under `/api/{user}` and `/api/share`
 - Manages GET and PUT requests for user deck data
+- Manages deck sharing with live references
 - Integrates with Cloudflare KV for persistent storage
+- Auto-migrates legacy data formats
 - Serves static assets (HTML, CSS, JS) for all other routes
 
 **API Endpoints**:
 
 - `GET /api/{user}`: Retrieves user's deck data from KV storage
-  - Returns empty array `[]` if no data exists
+  - Stores data with `user:` prefix (e.g., `user:garrett`)
+  - Returns array of `{id, text}` deck objects
+  - Auto-migrates old format (string arrays) to new format
   - Automatically initializes storage for new users
 
 - `PUT /api/{user}`: Saves user's deck data to KV storage
   - Accepts JSON-stringified deck array in request body
+  - Stores with `user:` prefix
   - Returns saved data on success
 
-**Code Flow** (src/index.js:1-42):
-1. Parse incoming request URL
-2. Route API requests to KV storage handlers
-3. Fallback to static asset serving via `ASSETS` binding
+- `POST /api/share`: Creates a new share link
+  - Accepts `{user, deckId}` in request body
+  - Generates UUID and stores reference as `share:{uuid}`
+  - Returns `{uuid}` for constructing share URL
+
+- `GET /api/share/{uuid}`: Retrieves shared deck content
+  - Resolves reference to fetch live deck data
+  - Returns only deck text (user identity not exposed)
+  - Handles both old format (plain text) and new format (references)
+
+**KV Key Patterns**:
+- `user:{username}` - User's deck list (array of `{id, text}` objects)
+- `share:{uuid}` - Share reference (`{user, deckId}`) or legacy plain text
+
+**Data Migration** (src/index.js:82-116):
+- Checks for new `user:` prefixed key first
+- Falls back to legacy unprefixed key
+- Detects old format (string array) vs new format (object array)
+- Auto-assigns UUIDs to migrated decks
+- Saves migrated data with new prefix
 
 ### 2. Frontend Application (`script.js`)
 
-The frontend manages deck editing, card lookups, and UI interactions.
+The frontend manages deck editing, card lookups, URL routing, and UI interactions.
 
 **Core State Variables**:
-- `data`: Array of deck strings (one per deck)
+- `data`: Array of deck objects `{id: string, text: string}` (plain strings in share mode)
 - `link_cache`: Object caching Scryfall card lookups
 - `selectedDeck`: Index of currently active deck
 - `isMobile`: Boolean tracking viewport width (≤768px)
 - `isRenderMode`: Boolean for mobile render/edit mode toggle
+- `isShareMode`: Boolean for read-only share view
+- `shareId`: UUID from share URL path
+- `currentUser`: Username parsed from URL
+- `initialDeckId`: Deck ID parsed from URL for deep linking
 
 **Key Functions**:
 
-- `load()` (script.js:32-38): Fetches user data from API on startup
-- `save()` (script.js:40-50): Debounced save to API (500ms delay)
-- `setDeckList()` (script.js:52-123): Renders deck selection in both desktop sidebar and mobile dropdown
-- `updateData()` (script.js:162-243): Parses deck text and displays card links with platform-specific interactions
-- `get_card()` (script.js:245-257): Fetches card data from Scryfall API
-- `display_card()` (script.js:125-160): Shows card images with mobile tap-to-open support
-- `switchDeck()` (script.js:267-277): Changes active deck
-- `updateRenderToggleIcon()` (script.js:304-315): Updates mobile toggle button icon
+- `load()` (script.js:58-84): Fetches user/share data from API on startup
+- `save()` (script.js:86-99): Debounced save to API (500ms delay)
+- `getDeckText(index)` (script.js:46-51): Helper to get deck text (handles both modes)
+- `getDeckId(index)` (script.js:54-56): Helper to get deck UUID
+- `updateUrl(deckId)` (script.js:101-109): Updates browser URL via history.pushState
+- `shareDeck()` (script.js:136-158): Creates share link via API
+- `copyShareUrl()` (script.js:160-167): Copies share URL to clipboard
+- `setDeckList()` (script.js:169-265): Renders deck selection with share button
+- `display_card()` (script.js:267-302): Shows card images with mobile tap-to-open support
+- `updateData()` (script.js:304-392): Parses deck text and displays card links
+- `get_card()` (script.js:394-406): Fetches card data from Scryfall API
+- `switchDeck()` (script.js:416-432): Changes active deck and updates URL
+- `updateRenderToggleIcon()` (script.js:458-470): Updates mobile toggle button icon
+
+**URL Routing**:
+- Parses `/{user}` and `/{user}/{deckId}` patterns
+- Deep links to specific decks via UUID in URL
+- Updates URL when switching decks (history.pushState)
+- Handles browser back/forward with popstate listener
+
+**Share Mode**:
+- Detected via `/share/{uuid}` URL pattern
+- Fetches deck content from `/api/share/{uuid}`
+- Displays read-only view (no editor, no sidebar)
+- Shows live deck content (always current version)
 
 **User Interactions**:
 - Text editing triggers automatic deck parsing and save
@@ -90,7 +132,7 @@ The frontend manages deck editing, card lookups, and UI interactions.
 ### 3. User Interface (`index.html`)
 
 **Desktop Layout** (4-column):
-1. **Collapsible Sidebar** (`.sidebar`): Deck list with add/delete buttons, toggle button to collapse
+1. **Collapsible Sidebar** (`.sidebar`): Deck list with add/share/delete buttons, toggle button to collapse
 2. **Text Editor** (`.editor-textarea`): Deck text input area
 3. **Card Links** (`.card-links`): Rendered card list with Scryfall links
 4. **Card Display** (`.card-display`): Card image preview area
@@ -100,6 +142,17 @@ The frontend manages deck editing, card lookups, and UI interactions.
 2. **Dropdown Menu** (`.mobile-dropdown`): Deck selection dropdown from header
 3. **Content Area**: Either editor (default) or rendered view
 4. **Render Toggle** (`.render-toggle`): Floating button to switch between edit/render modes
+
+**Share Mode Layout**:
+- Sidebar hidden (desktop)
+- Mobile header/dropdown hidden
+- Editor hidden
+- Card links and display shown in read-only mode
+
+**Share Modal** (index.html:55-66):
+- Overlay modal for displaying share URL
+- Copy button with "Copied!" feedback
+- Close button and click-outside-to-close
 
 **Mobile Render Mode**:
 - Top 25% shows card art display
@@ -111,6 +164,10 @@ The frontend manages deck editing, card lookups, and UI interactions.
 - Spellcheck disabled for card names
 - Placeholder instructions for new users
 - Auto-expanding textarea based on content
+
+**Asset Paths**:
+- CSS and JS use absolute paths (`/styles.css`, `/script.js`)
+- Required for nested routes like `/share/{uuid}` and `/{user}/{deckId}`
 
 ### 4. Styling (`styles.css`)
 
@@ -132,6 +189,21 @@ The frontend manages deck editing, card lookups, and UI interactions.
 - Custom WebKit scrollbar styling
 - Gradient background on card display area
 - System font stack for better performance
+
+**Share Button Styling** (styles.css:591-609):
+- Purple accent outline style
+- Matches theme with hover states
+
+**Share Modal Styling** (styles.css:611-706):
+- Dark overlay background
+- Centered modal with shadow
+- Monospace font for URL input
+- Copy button with accent color
+
+**Share Mode Styling** (styles.css:708-765):
+- Hides sidebar, header, editor
+- Full-width card links panel
+- Mobile-responsive adjustments
 
 **Responsive Breakpoints**:
 - **Mobile** (≤768px): Single column, header with dropdown, floating render toggle
@@ -166,21 +238,43 @@ id = "bb576df04a11477f935a3b59ae24ba18"
 
 ### Loading Process
 
-1. User navigates to `/{username}` (e.g., `/garrett`)
-2. `script.js` starts, calls `load()`
+1. User navigates to `/{username}` or `/{username}/{deckId}`
+2. `script.js` starts, parses URL for user and optional deckId
 3. Frontend fetches `/api/{username}`
-4. Worker retrieves data from KV or initializes with `[]`
-5. Frontend populates deck list and editor
-6. Link cache loaded from localStorage
+4. Worker retrieves data from `user:{username}` KV key
+5. If legacy format found, auto-migrates to new format
+6. Frontend populates deck list and editor
+7. If deckId in URL, selects that deck; otherwise selects first
+8. URL updated via history.replaceState with current deck ID
+9. Link cache loaded from localStorage
 
 ### Saving Process
 
 1. User edits deck text in textarea
-2. `oninput` event triggers (script.js:165)
-3. 500ms debounced `save()` queues API PUT request
-4. Data sent to `/api/{username}`
-5. Worker stores JSON in KV namespace
-6. Link cache saved to localStorage
+2. `oninput` event triggers
+3. Deck object's `text` property updated
+4. 500ms debounced `save()` queues API PUT request
+5. Data sent to `/api/{username}`
+6. Worker stores JSON in `user:{username}` KV key
+7. Link cache saved to localStorage
+
+### Sharing Process
+
+1. User clicks "Share Deck" button
+2. Frontend POSTs `{user, deckId}` to `/api/share`
+3. Worker generates UUID, stores reference in `share:{uuid}`
+4. Worker returns `{uuid}` to frontend
+5. Frontend displays modal with full share URL
+
+### Viewing Shared Deck
+
+1. User navigates to `/share/{uuid}`
+2. Frontend detects share mode, applies share-mode class
+3. Frontend fetches `/api/share/{uuid}`
+4. Worker looks up `share:{uuid}` → gets `{user, deckId}`
+5. Worker fetches `user:{user}` → finds deck by ID
+6. Worker returns deck text only (user not exposed)
+7. Frontend displays read-only view with current deck content
 
 ### Card Lookup Process
 
@@ -195,9 +289,18 @@ id = "bb576df04a11477f935a3b59ae24ba18"
 
 ### Deck Management
 - Create unlimited decks per user
+- Each deck has a unique UUID
 - Switch between decks with sidebar buttons
 - Delete decks with confirmation prompt
 - Auto-save every 500ms after editing
+- Bookmarkable URLs for each deck (`/{user}/{deckId}`)
+
+### Deck Sharing
+- Generate shareable read-only links
+- Share links show live deck content (always current version)
+- User identity not exposed in share links
+- Copy-to-clipboard functionality
+- Clean read-only view for shared decks
 
 ### Card Display
 - Automatic Scryfall integration
@@ -212,6 +315,7 @@ id = "bb576df04a11477f935a3b59ae24ba18"
 - Edge-cached KV storage for low latency
 - LocalStorage caching for Scryfall lookups
 - Automatic initialization for new users
+- Non-destructive migration for legacy data
 
 ## Development
 
@@ -253,6 +357,8 @@ This starts a local development server with hot reloading.
 
 - Modern browsers with ES6+ support required
 - Uses Fetch API (no polyfills included)
+- Uses `crypto.randomUUID()` for deck IDs
+- Uses History API for URL management
 - Flexbox-based responsive layout
 - Custom scrollbar styling (WebKit only)
 - Mobile-responsive with touch interactions
@@ -262,8 +368,17 @@ This starts a local development server with hot reloading.
 
 - No authentication implemented (user URLs are public)
 - Data accessible to anyone with the URL path
+- Share links do not expose user identity
 - No input sanitization on deck names
 - CORS not configured (relies on same-origin)
+
+### Data Migration
+
+The system automatically handles legacy data:
+- Old KV keys without `user:` prefix are migrated
+- Old deck format (string arrays) migrated to object arrays with UUIDs
+- Old share format (plain text) still supported for reading
+- Migration is non-destructive (original data preserved during transition)
 
 ## API Dependencies
 
@@ -303,8 +418,10 @@ This starts a local development server with hot reloading.
 6. Hover over card names to preview images
 7. Click card links to view on Scryfall
 8. Use sidebar toggle (chevron) to collapse/expand deck list
-9. Switch decks using sidebar buttons
-10. Delete unwanted decks with confirmation
+9. Switch decks using sidebar buttons (URL updates automatically)
+10. Bookmark specific decks via URL (`/{user}/{deckId}`)
+11. Click "Share Deck" to generate shareable link
+12. Delete unwanted decks with confirmation
 
 ### Mobile Workflow
 1. Navigate to `https://yourworker.workers.dev/{username}`
@@ -314,6 +431,15 @@ This starts a local development server with hot reloading.
 5. Tap floating grid button (bottom right) to switch to render mode
 6. In render mode: tap card names to show art, tap art to open Scryfall
 7. Tap pencil button to return to edit mode
+8. Tap "Share Deck" in dropdown to generate shareable link
+
+### Sharing Workflow
+1. Open deck you want to share
+2. Click/tap "Share Deck" button
+3. Modal appears with shareable URL
+4. Click "Copy" to copy URL to clipboard
+5. Share URL with others
+6. Recipients see read-only view with current deck content
 
 ## Deck Format Example
 
@@ -332,6 +458,14 @@ My Burn Deck
 20x Mountain
 ```
 
+## URL Patterns
+
+| Pattern | Description |
+|---------|-------------|
+| `/{user}` | User's deck list, shows first deck |
+| `/{user}/{deckId}` | User's deck list, shows specific deck |
+| `/share/{shareId}` | Read-only view of shared deck |
+
 ## Future Enhancement Opportunities
 
 - User authentication and private decks
@@ -341,7 +475,7 @@ My Burn Deck
 - Card price integration
 - Drag-and-drop deck reordering
 - Deck categorization and search
-- Share/collaboration features
+- Collaborative deck editing
 
 ## Troubleshooting
 
@@ -363,12 +497,23 @@ My Burn Deck
 - Check browser developer tools for CSS errors
 - Ensure viewport meta tag is present for proper mobile scaling
 
+**Share link not working**:
+- Verify the shared deck still exists
+- Check if deck was deleted after sharing
+- Ensure CSS/JS loading (paths should be absolute)
+
+**URL not updating**:
+- Check browser console for history API errors
+- Verify deck has valid UUID
+
 ## Repository History
 
-Recent commits show conversion from Cloudflare Pages format to Workers format, including:
-- Migration from Pages Functions to Workers API routes
-- Configuration updates in wrangler.toml
-- Asset serving via Workers binding
+Recent commits show:
+- Deck sharing feature with live references
+- Deck UUIDs for bookmarkable URLs
+- Data migration for legacy formats
+- Responsive layout improvements
+- Mobile-first interactions
 
 ## Contributing
 
