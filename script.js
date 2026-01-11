@@ -14,6 +14,9 @@ var pathParts = window.location.pathname.split('/').filter(p => p);
 var currentUser = !isShareMode ? pathParts[0] : null;
 var initialDeckId = !isShareMode && pathParts[1] ? pathParts[1] : null;
 
+// Check if we're on the landing page (root path with no user)
+var isLandingPage = window.location.pathname === '/' && !isShareMode;
+
 // DOM Elements
 var editor = document.getElementById("editor");
 var decklist = document.getElementById("decks");
@@ -22,6 +25,7 @@ var cardLinks = document.getElementById("hovers");
 var dispArea = document.getElementById("display");
 var sidebar = document.getElementById("sidebar");
 var sidebarToggle = document.getElementById("sidebarToggle");
+var sidebarExpand = document.getElementById("sidebarExpand");
 var mobileMenuBtn = document.getElementById("mobileMenuBtn");
 var mobileDropdown = document.getElementById("mobileDropdown");
 var renderToggle = document.getElementById("renderToggle");
@@ -29,6 +33,19 @@ var shareModal = document.getElementById("shareModal");
 var shareUrlInput = document.getElementById("shareUrl");
 var copyShareBtn = document.getElementById("copyShareBtn");
 var closeShareModal = document.getElementById("closeShareModal");
+var landingPage = document.getElementById("landingPage");
+var getStartedBtn = document.getElementById("getStartedBtn");
+var logoLink = document.getElementById("logoLink");
+var mobileLogoLink = document.getElementById("mobileLogoLink");
+var desktopHeader = document.getElementById("desktopHeader");
+var bookmarkWarning = document.getElementById("bookmarkWarning");
+
+// Resize elements
+var sidebarResizer = document.getElementById("sidebarResizer");
+var editorResizer = document.getElementById("editorResizer");
+var displayResizer = document.getElementById("displayResizer");
+var editorContainer = document.getElementById("syncScroll");
+var mainContent = document.getElementById("mainContent");
 
 // Update mobile detection on resize
 window.addEventListener("resize", () => {
@@ -65,7 +82,7 @@ async function load(){
         } else {
             data = ["# Shared deck not found"];
         }
-    } else {
+    } else if (currentUser) {
         // Load user decks (now returns array of {id, text} objects)
         await fetch(`/api/${currentUser}`)
         .then(e => e.json()).then(js => {
@@ -79,8 +96,14 @@ async function load(){
                 selectedDeck = deckIndex;
             }
         }
+
+        // Save user ID to localStorage
+        localStorage.setItem("decklister_user_id", currentUser);
     }
     link_cache = JSON.parse(localStorage.getItem("link_cache")) || {};
+
+    // Load saved panel sizes
+    loadPanelSizes();
 }
 
 var saveTimer;
@@ -176,8 +199,8 @@ function setDeckList(){
 
     // Create add deck button
     var addDeckButton = document.createElement("button")
-    addDeckButton.innerHTML = "+ Add Deck"
-    addDeckButton.classList.add("DeckButton");
+    addDeckButton.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon"><path d="M12 5v14M5 12h14"/></svg><span>Add Deck</span>`;
+    addDeckButton.classList.add("DeckButton", "add-deck-btn");
     decklist.appendChild(addDeckButton);
     addDeckButton.onclick = () => {
         // Create new deck with UUID
@@ -197,71 +220,85 @@ function setDeckList(){
     }
     mobileDecklist.appendChild(mobileAddButton);
 
-    // Add each deckname as a button
+    // Add each deck as a button with inline action icons
     for(var i = 0; i < data.length; i++){
         var deckname = getDeckText(i).split("\n")[0] || "Untitled";
 
-        const button = document.createElement("button")
-        button.classList.add("DeckButton");
+        // Create deck item container
+        const deckItem = document.createElement("div");
+        deckItem.classList.add("deck-item");
         if (i === selectedDeck) {
-            button.classList.add("active");
+            deckItem.classList.add("active");
         }
+
+        // Deck name button
+        const button = document.createElement("button");
+        button.classList.add("DeckButton", "deck-name-btn");
         button.onclick = switchDeck(i);
         button.innerHTML = deckname;
-        decklist.appendChild(button);
+
+        // Share button (icon only)
+        const shareBtn = document.createElement("button");
+        shareBtn.classList.add("deck-action-btn", "share-action-btn");
+        shareBtn.title = "Share deck";
+        shareBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
+        const shareIdx = i;
+        shareBtn.onclick = (e) => {
+            e.stopPropagation();
+            selectedDeck = shareIdx;
+            shareDeck();
+        };
+
+        // Delete button (icon only)
+        const deleteBtn = document.createElement("button");
+        deleteBtn.classList.add("deck-action-btn", "delete-action-btn");
+        deleteBtn.title = "Delete deck";
+        deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`;
+        const delIdx = i;
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            const deckName = getDeckText(delIdx).split("\n")[0] || "Untitled";
+            if(confirm(`Are you sure you want to delete "${deckName}"?`)){
+                data.splice(delIdx, 1);
+                if (selectedDeck >= data.length) {
+                    selectedDeck = Math.max(0, data.length - 1);
+                }
+                switchDeck(selectedDeck)();
+            }
+        };
+
+        deckItem.appendChild(button);
+        deckItem.appendChild(shareBtn);
+        deckItem.appendChild(deleteBtn);
+        decklist.appendChild(deckItem);
 
         // Clone for mobile
-        var mobileButton = button.cloneNode(true);
+        var mobileItem = deckItem.cloneNode(true);
         const idx = i;
-        mobileButton.onclick = () => {
+        mobileItem.querySelector(".deck-name-btn").onclick = () => {
             switchDeck(idx)();
             closeMobileMenu();
         };
-        mobileDecklist.appendChild(mobileButton);
-    }
-
-    // Add share button
-    var shareDeckButton = document.createElement("button")
-    shareDeckButton.innerHTML = "Share Deck"
-    shareDeckButton.id = "shareButton";
-    shareDeckButton.classList.add("DeckButton");
-    decklist.appendChild(shareDeckButton);
-    shareDeckButton.onclick = shareDeck;
-
-    // Clone share for mobile
-    var mobileShareButton = shareDeckButton.cloneNode(true);
-    mobileShareButton.id = "mobileShareButton";
-    mobileShareButton.onclick = () => {
-        shareDeck();
-        closeMobileMenu();
-    };
-    mobileDecklist.appendChild(mobileShareButton);
-
-    // Add delete button
-    var removeDeckButton = document.createElement("button")
-    removeDeckButton.innerHTML = "Delete Current Deck"
-    removeDeckButton.id = "deleteButton";
-    decklist.appendChild(removeDeckButton);
-    removeDeckButton.onclick = () => {
-        const deckName = getDeckText(selectedDeck).split("\n")[0] || "Untitled";
-        if(confirm(`Are you sure you want to delete your deck "${deckName}"? This action cannot be undone`)){
-            data.splice(selectedDeck, 1);
-            switchDeck(0)();
-        }
-    };
-
-    // Clone delete for mobile
-    var mobileDeleteButton = removeDeckButton.cloneNode(true);
-    mobileDeleteButton.id = "mobileDeleteButton";
-    mobileDeleteButton.onclick = () => {
-        const deckName = getDeckText(selectedDeck).split("\n")[0] || "Untitled";
-        if(confirm(`Are you sure you want to delete your deck "${deckName}"? This action cannot be undone`)){
-            data.splice(selectedDeck, 1);
-            switchDeck(0)();
+        mobileItem.querySelector(".share-action-btn").onclick = (e) => {
+            e.stopPropagation();
+            selectedDeck = idx;
+            shareDeck();
             closeMobileMenu();
-        }
-    };
-    mobileDecklist.appendChild(mobileDeleteButton);
+        };
+        mobileItem.querySelector(".delete-action-btn").onclick = (e) => {
+            e.stopPropagation();
+            const deckName = getDeckText(idx).split("\n")[0] || "Untitled";
+            if(confirm(`Are you sure you want to delete "${deckName}"?`)){
+                data.splice(idx, 1);
+                if (selectedDeck >= data.length) {
+                    selectedDeck = Math.max(0, data.length - 1);
+                }
+                switchDeck(selectedDeck)();
+                closeMobileMenu();
+            }
+        };
+        mobileDecklist.appendChild(mobileItem);
+    }
 }
 
 function display_card(cardData){
@@ -433,7 +470,14 @@ function switchDeck(index){
 
 // Sidebar toggle (desktop)
 sidebarToggle.onclick = () => {
-    sidebar.classList.toggle("collapsed");
+    sidebar.classList.add("collapsed");
+    sidebarExpand.classList.add("visible");
+};
+
+// Sidebar expand button
+sidebarExpand.onclick = () => {
+    sidebar.classList.remove("collapsed");
+    sidebarExpand.classList.remove("visible");
 };
 
 // Mobile menu toggle
@@ -475,7 +519,213 @@ renderToggle.onclick = () => {
     updateRenderToggleIcon();
 };
 
+// ========================================
+// Panel Resizing
+// ========================================
+var isResizing = false;
+var currentResizer = null;
+var startX = 0;
+var startY = 0;
+var startWidth = 0;
+var startHeight = 0;
+
+function loadPanelSizes() {
+    const savedSizes = JSON.parse(localStorage.getItem("decklister_panel_sizes") || "{}");
+
+    if (savedSizes.sidebarWidth && sidebar) {
+        sidebar.style.width = savedSizes.sidebarWidth + "px";
+        sidebar.style.minWidth = savedSizes.sidebarWidth + "px";
+    }
+    if (savedSizes.editorWidth && editor) {
+        editor.style.minWidth = savedSizes.editorWidth + "%";
+        editor.style.flex = "0 0 " + savedSizes.editorWidth + "%";
+    }
+    if (savedSizes.displayWidth && dispArea) {
+        dispArea.style.width = savedSizes.displayWidth + "%";
+    }
+}
+
+function savePanelSizes() {
+    const sizes = {};
+    if (sidebar) {
+        sizes.sidebarWidth = parseInt(sidebar.style.width) || 220;
+    }
+    if (editor) {
+        const editorWidth = parseFloat(editor.style.minWidth) || 45;
+        sizes.editorWidth = editorWidth;
+    }
+    if (dispArea) {
+        const displayWidth = parseFloat(dispArea.style.width) || 50;
+        sizes.displayWidth = displayWidth;
+    }
+    localStorage.setItem("decklister_panel_sizes", JSON.stringify(sizes));
+}
+
+function initResizers() {
+    // Sidebar resizer (desktop only)
+    if (sidebarResizer) {
+        sidebarResizer.addEventListener("mousedown", (e) => {
+            if (isMobile) return;
+            isResizing = true;
+            currentResizer = "sidebar";
+            startX = e.clientX;
+            startWidth = sidebar.offsetWidth;
+            document.body.classList.add("resizing");
+            e.preventDefault();
+        });
+    }
+
+    // Editor resizer (between editor and card-links)
+    if (editorResizer) {
+        editorResizer.addEventListener("mousedown", (e) => {
+            isResizing = true;
+            currentResizer = "editor";
+            startX = e.clientX;
+            startWidth = editor.offsetWidth;
+            document.body.classList.add("resizing");
+            e.preventDefault();
+        });
+    }
+
+    // Display resizer (between editor-container and card-display)
+    if (displayResizer) {
+        displayResizer.addEventListener("mousedown", (e) => {
+            if (isMobile) return;
+            isResizing = true;
+            currentResizer = "display";
+            startX = e.clientX;
+            startWidth = editorContainer.offsetWidth;
+            document.body.classList.add("resizing");
+            e.preventDefault();
+        });
+    }
+
+    // Touch support for resizers
+    [sidebarResizer, editorResizer, displayResizer].forEach(resizer => {
+        if (!resizer) return;
+        resizer.addEventListener("touchstart", (e) => {
+            const resizerType = resizer.id.replace("Resizer", "");
+            if (resizerType === "sidebar" && isMobile) return;
+            if (resizerType === "display" && isMobile) return;
+
+            isResizing = true;
+            currentResizer = resizerType;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+
+            if (currentResizer === "sidebar") {
+                startWidth = sidebar.offsetWidth;
+            } else if (currentResizer === "editor") {
+                startWidth = editor.offsetWidth;
+            } else if (currentResizer === "display") {
+                startWidth = editorContainer.offsetWidth;
+            }
+
+            document.body.classList.add("resizing");
+            e.preventDefault();
+        }, { passive: false });
+    });
+
+    // Mouse move handler
+    document.addEventListener("mousemove", handleResize);
+    document.addEventListener("touchmove", (e) => {
+        if (isResizing) {
+            handleResize({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
+        }
+    }, { passive: false });
+
+    // Mouse up handler
+    document.addEventListener("mouseup", stopResize);
+    document.addEventListener("touchend", stopResize);
+}
+
+function handleResize(e) {
+    if (!isResizing) return;
+
+    const deltaX = e.clientX - startX;
+
+    if (currentResizer === "sidebar") {
+        const newWidth = Math.max(150, Math.min(400, startWidth + deltaX));
+        sidebar.style.width = newWidth + "px";
+        sidebar.style.minWidth = newWidth + "px";
+    } else if (currentResizer === "editor") {
+        const containerWidth = editorContainer.offsetWidth;
+        const newEditorWidth = startWidth + deltaX;
+        const percentage = Math.max(20, Math.min(80, (newEditorWidth / containerWidth) * 100));
+        editor.style.minWidth = percentage + "%";
+        editor.style.flex = "0 0 " + percentage + "%";
+    } else if (currentResizer === "display") {
+        const totalWidth = mainContent.offsetWidth;
+        const newContainerWidth = startWidth + deltaX;
+        const percentage = Math.max(30, Math.min(70, (newContainerWidth / totalWidth) * 100));
+        editorContainer.style.maxWidth = percentage + "%";
+        dispArea.style.width = (100 - percentage) + "%";
+    }
+}
+
+function stopResize() {
+    if (isResizing) {
+        isResizing = false;
+        currentResizer = null;
+        document.body.classList.remove("resizing");
+        savePanelSizes();
+    }
+}
+
+// ========================================
+// Landing Page & Navigation
+// ========================================
+function handleLogoClick(e) {
+    // Set flag to indicate intentional navigation to homepage
+    sessionStorage.setItem("decklister_intentional_home", "true");
+}
+
+function setupLandingPage() {
+    if (isLandingPage) {
+        // Check if user has a saved ID and didn't intentionally navigate home
+        const savedUserId = localStorage.getItem("decklister_user_id");
+        const intentionalHome = sessionStorage.getItem("decklister_intentional_home");
+
+        // Clear the intentional home flag
+        sessionStorage.removeItem("decklister_intentional_home");
+
+        if (savedUserId && !intentionalHome) {
+            // Redirect to their saved page
+            window.location.href = "/" + savedUserId;
+            return true;
+        }
+
+        // Show landing page
+        document.body.classList.add("landing-mode");
+
+        if (getStartedBtn) {
+            getStartedBtn.onclick = () => {
+                const newUserId = crypto.randomUUID();
+                localStorage.setItem("decklister_user_id", newUserId);
+                window.location.href = "/" + newUserId;
+            };
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+// Setup logo click handlers
+if (logoLink) {
+    logoLink.onclick = handleLogoClick;
+}
+if (mobileLogoLink) {
+    mobileLogoLink.onclick = handleLogoClick;
+}
+
 async function start(){
+    // Handle landing page
+    if (setupLandingPage()) {
+        return;
+    }
+
     // Set up share mode UI
     if (isShareMode) {
         document.body.classList.add("share-mode");
@@ -498,6 +748,9 @@ async function start(){
             }
         };
     }
+
+    // Initialize resizers
+    initResizers();
 
     await load();
 

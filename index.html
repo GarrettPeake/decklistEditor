@@ -5,12 +5,36 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="/styles.css">
-        <title>Deck Editor</title>
+        <title>Decklister</title>
     </head>
     <body>
+        <!-- Landing Page -->
+        <div id="landingPage" class="landing-page">
+            <div class="landing-content">
+                <h1 class="landing-title">Decklister</h1>
+                <p class="landing-subtitle">Create and manage your Magic: The Gathering decklists with ease</p>
+                <button id="getStartedBtn" class="landing-cta">Get Started</button>
+            </div>
+        </div>
+
+        <!-- Desktop Header -->
+        <header id="desktopHeader" class="desktop-header">
+            <a href="/" id="logoLink" class="logo-link">
+                <h1 class="header-title">Decklister</h1>
+            </a>
+            <div id="bookmarkWarning" class="bookmark-warning">
+                <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>Bookmark this page to save your decks!</span>
+            </div>
+        </header>
+
         <!-- Mobile Header -->
         <header class="mobile-header">
-            <h1 class="mobile-title">Deck Editor</h1>
+            <a href="/" id="mobileLogoLink" class="logo-link">
+                <h1 class="mobile-title">Decklister</h1>
+            </a>
             <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Open deck menu">
                 <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M4 6h16M4 12h16M4 18h16"/>
@@ -22,6 +46,13 @@
         <div id="mobileDropdown" class="mobile-dropdown">
             <div id="mobileDecks" class="mobile-decks-list"></div>
         </div>
+
+        <!-- Sidebar Expand Button (visible when sidebar collapsed) -->
+        <button id="sidebarExpand" class="sidebar-expand" aria-label="Expand sidebar">
+            <svg class="expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+            </svg>
+        </button>
 
         <!-- Desktop Sidebar -->
         <aside id="sidebar" class="sidebar">
@@ -35,10 +66,16 @@
 
         <!-- Main Content Area -->
         <main id="mainContent" class="main-content">
+            <!-- Resize handle for sidebar -->
+            <div id="sidebarResizer" class="resize-handle sidebar-resizer"></div>
             <div id="syncScroll" class="scrollable editor-container">
                 <textarea spellcheck="false" id="editor" class="editor-textarea" placeholder="Start typing here to create a new deck. The first line is the title&#13;&#10;&#13;&#10;Card links will appear to the right as you type. Click a link to open the card's scryfall page or just hover over it to see the card&#13;&#10;&#13;&#10;You can add section headers like #header and card quantities like '4x Rat'"></textarea>
+                <!-- Resize handle for editor/card-links -->
+                <div id="editorResizer" class="resize-handle editor-resizer"></div>
                 <span id="hovers" class="card-links"></span>
             </div>
+            <!-- Resize handle for card-display -->
+            <div id="displayResizer" class="resize-handle display-resizer"></div>
             <div id="display" class="card-display"></div>
         </main>
 
