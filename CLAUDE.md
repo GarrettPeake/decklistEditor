@@ -6,7 +6,7 @@ Decklist Editor is a web-based application for creating, managing, and organizin
 
 **Author**: Garrett Peake
 **License**: MIT
-**Version**: 1.3.1
+**Version**: 1.4.0
 
 ## Architecture Overview
 
@@ -204,9 +204,17 @@ The frontend is organized into ES modules for maintainability. Each module has a
 
 #### Resizer Module (`js/resizer.js`)
 
-- `loadPanelSizes()`: Loads saved panel sizes from localStorage
+- `loadPanelSizes()`: Loads saved panel sizes from localStorage (sidebar width, display width, mobile card height)
 - `savePanelSizes()`: Saves panel sizes to localStorage
-- `initResizers()`: Sets up resize handlers for all panels
+- `initResizers()`: Sets up resize handlers for sidebar, display, and mobile render resizers
+- `applyMobileRenderHeight()`: Applies saved mobile card display height when entering render mode
+- `resetMobileRenderHeight()`: Resets mobile card display height when exiting render mode
+
+**Resize Behavior**:
+- **Sidebar resizer**: Controls sidebar width in pixels (150-400px range)
+- **Display resizer**: Controls card display panel width in pixels (200-600px range)
+- **Mobile render resizer**: Controls card display height in mobile render mode (vertical drag)
+- Editor and card links panels split remaining space equally (flex: 1)
 
 #### Landing Module (`js/landing.js`)
 
@@ -251,11 +259,13 @@ The frontend is organized into ES modules for maintainability. Each module has a
 
 ### 3. User Interface (`index.html`)
 
-**Desktop Layout** (4-column):
-1. **Collapsible Sidebar** (`.sidebar`): Deck list with add/share/delete buttons, toggle button to collapse
-2. **Text Editor** (`.editor-textarea`): Deck text input area
-3. **Card Links** (`.card-links`): Rendered card list with Scryfall links
+**Desktop Layout** (4-panel):
+1. **Collapsible Sidebar** (`.sidebar`): Deck list with add/share/delete buttons, inline hamburger toggle button
+   - Resize handle on right edge (controls sidebar width in px)
+2. **Text Editor** (`.editor-textarea`): Deck text input area (flex: 1, shares space with card links)
+3. **Card Links** (`.card-links`): Rendered card list with Scryfall links (flex: 1, shares space with editor)
 4. **Card Display** (`.card-display`): Card image preview area
+   - Resize handle on left edge (controls display width in px)
 
 **Mobile Layout** (≤768px):
 1. **Header Bar** (`.mobile-header`): Title and hamburger menu button
@@ -275,8 +285,9 @@ The frontend is organized into ES modules for maintainability. Each module has a
 - Close button and click-outside-to-close
 
 **Mobile Render Mode**:
-- Top 25% shows card art display
-- Bottom 75% shows rendered card list
+- Top portion shows card art display (default 30vh, resizable)
+- Bottom portion shows rendered card list
+- Horizontal resize handle between panels (drag to adjust split)
 - Tap card name to show its art
 - Tap card art to open Scryfall
 
@@ -358,8 +369,16 @@ The CSS is organized into focused modules using CSS `@import`. Each module has a
 - `.position-above`: Modifier class for positioning dropdown above cursor when near viewport bottom
 
 **Sidebar** (`styles/sidebar.css`):
-- `.deck-list-header`: Fixed container for Add Deck button
+- `.deck-list-header`: Flex container for Add Deck button and toggle button
 - `.deck-list-items`: Scrollable container for deck items
+- `.sidebar-toggle-btn`: Inline hamburger toggle button (square, same height as Add Deck)
+
+**Resize Handles** (`styles/resize.css`):
+- `.resize-handle`: Base style with light box appearance and three-dot indicator
+- `.resize-dots`: Vertical dots by default, `.horizontal` modifier for horizontal orientation
+- `.sidebar-resizer`: Positioned on right edge of sidebar
+- `.display-resizer`: Positioned on left edge of card display
+- `.mobile-render-resizer`: Horizontal handle between card display and card links (mobile only)
 
 #### Responsive Breakpoints (`styles/responsive.css`)
 
@@ -706,6 +725,7 @@ My Burn Deck
 ## Repository History
 
 Recent commits show:
+- Improved resize handles with visual dot indicators, sidebar/display px-based resizing, mobile render resizer (v1.4.0)
 - Overflow fixes: sidebar deck list scrolling, autocomplete position-above, share mode layout (v1.3.1)
 - Modular ES modules refactor for JS and CSS (v1.3.0)
 - Scryfall search API autocomplete in editor (v1.2.0)

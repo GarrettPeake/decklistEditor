@@ -19,7 +19,7 @@ export function setDeckList() {
     dom.decklist.innerHTML = "";
     dom.mobileDecklist.innerHTML = "";
 
-    // Create header container for add button (stays fixed)
+    // Create header container for add button and toggle (stays fixed)
     const headerContainer = document.createElement("div");
     headerContainer.classList.add("deck-list-header");
 
@@ -31,7 +31,6 @@ export function setDeckList() {
     const addDeckButton = document.createElement("button");
     addDeckButton.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon"><path d="M12 5v14M5 12h14"/></svg><span>Add Deck</span>`;
     addDeckButton.classList.add("DeckButton", "add-deck-btn");
-    headerContainer.appendChild(addDeckButton);
     addDeckButton.onclick = () => {
         // Create new deck with UUID
         const newDeck = { id: crypto.randomUUID(), text: "" };
@@ -39,6 +38,18 @@ export function setDeckList() {
         switchDeck(0)();
         closeMobileMenu();
     };
+
+    // Create sidebar toggle button (hamburger icon)
+    const toggleButton = document.createElement("button");
+    toggleButton.classList.add("sidebar-toggle-btn");
+    toggleButton.setAttribute("aria-label", "Toggle sidebar");
+    toggleButton.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toggle-icon"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
+    toggleButton.onclick = () => {
+        dom.sidebar.classList.toggle("collapsed");
+    };
+
+    headerContainer.appendChild(addDeckButton);
+    headerContainer.appendChild(toggleButton);
 
     // Add header and items containers to deck list
     dom.decklist.appendChild(headerContainer);

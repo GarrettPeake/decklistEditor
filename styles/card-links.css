@@ -3,7 +3,7 @@
    ======================================== */
 .card-links {
     flex: 1;
-    min-width: 45%;
+    min-width: 0;
     padding: 24px 24px 24px 64px;
     display: flex;
     flex-direction: column;

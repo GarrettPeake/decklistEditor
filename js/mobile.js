@@ -4,6 +4,7 @@
 
 import * as state from './state.js';
 import * as dom from './dom.js';
+import { applyMobileRenderHeight, resetMobileRenderHeight } from './resizer.js';
 
 // Close mobile dropdown menu
 export function closeMobileMenu() {
@@ -35,6 +36,7 @@ export function initMobileHandlers() {
             dom.mobileDropdown.classList.remove("open");
             state.setIsRenderMode(false);
             updateRenderToggleIcon();
+            resetMobileRenderHeight();
         }
     });
 
@@ -48,6 +50,13 @@ export function initMobileHandlers() {
         state.setIsRenderMode(!state.isRenderMode);
         document.body.classList.toggle("render-mode", state.isRenderMode);
         updateRenderToggleIcon();
+
+        // Apply or reset mobile card display height
+        if (state.isRenderMode) {
+            applyMobileRenderHeight();
+        } else {
+            resetMobileRenderHeight();
+        }
     };
 
     // Close mobile dropdown when clicking outside
@@ -60,15 +69,10 @@ export function initMobileHandlers() {
         }
     });
 
-    // Sidebar toggle (desktop)
-    dom.sidebarToggle.onclick = () => {
-        dom.sidebar.classList.add("collapsed");
-        dom.sidebarExpand.classList.add("visible");
-    };
-
-    // Sidebar expand button
-    dom.sidebarExpand.onclick = () => {
-        dom.sidebar.classList.remove("collapsed");
-        dom.sidebarExpand.classList.remove("visible");
-    };
+    // Sidebar expand button (desktop - visible when sidebar is collapsed)
+    if (dom.sidebarExpand) {
+        dom.sidebarExpand.onclick = () => {
+            dom.sidebar.classList.remove("collapsed");
+        };
+    }
 }

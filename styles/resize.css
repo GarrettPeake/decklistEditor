@@ -3,38 +3,123 @@
    ======================================== */
 .resize-handle {
     position: absolute;
-    background-color: transparent;
     z-index: 20;
-    transition: background-color var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--dark-gray);
+    border: 1px solid var(--gray);
 }
 
 .resize-handle:hover,
 .resize-handle:active {
+    background-color: var(--gray);
+    border-color: var(--cyan);
+}
+
+.resize-handle:hover .resize-dots,
+.resize-handle:active .resize-dots {
     background-color: var(--cyan);
 }
 
-.sidebar-resizer {
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    cursor: col-resize;
+.resize-handle:hover .resize-dots::before,
+.resize-handle:hover .resize-dots::after,
+.resize-handle:active .resize-dots::before,
+.resize-handle:active .resize-dots::after {
+    background-color: var(--cyan);
 }
 
-.editor-resizer {
-    left: 50%;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    cursor: col-resize;
-    transform: translateX(-50%);
-    z-index: 25;
+/* Resize dots indicator - vertical (default) */
+.resize-dots {
+    width: 4px;
+    height: 4px;
+    background-color: var(--light-gray);
+    border-radius: 50%;
+    position: relative;
 }
 
-.display-resizer {
+.resize-dots::before,
+.resize-dots::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background-color: var(--light-gray);
+    border-radius: 50%;
     left: 0;
+    transition: background-color var(--transition-fast);
+}
+
+.resize-dots::before {
+    top: -7px;
+}
+
+.resize-dots::after {
+    top: 7px;
+}
+
+/* Horizontal dots for horizontal resize handles */
+.resize-dots.horizontal {
+    display: flex;
+    align-items: center;
+}
+
+.resize-dots.horizontal::before,
+.resize-dots.horizontal::after {
     top: 0;
-    bottom: 0;
-    width: 6px;
+}
+
+.resize-dots.horizontal::before {
+    left: -7px;
+}
+
+.resize-dots.horizontal::after {
+    left: 7px;
+}
+
+/* Sidebar resizer - right edge of sidebar */
+.sidebar-resizer {
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 48px;
     cursor: col-resize;
+}
+
+/* Display resizer - left edge of card display */
+.display-resizer {
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 48px;
+    cursor: col-resize;
+}
+
+/* Mobile render mode resizer - between card display and card links */
+.mobile-render-resizer {
+    display: none;
+    left: 50%;
+    bottom: -8px;
+    transform: translateX(-50%);
+    width: 48px;
+    height: 16px;
+    cursor: row-resize;
+}
+
+/* Body class during resize for cursor */
+body.resizing {
+    cursor: col-resize;
+    user-select: none;
+}
+
+body.resizing-vertical {
+    cursor: row-resize;
+    user-select: none;
+}
+
+/* Hide sidebar resizer when collapsed */
+.sidebar.collapsed .sidebar-resizer {
+    display: none;
 }
