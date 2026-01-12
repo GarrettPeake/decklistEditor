@@ -16,6 +16,11 @@
     z-index: 10;
 }
 
+/* Disable transition during resize for snappy feel */
+body.resizing .sidebar {
+    transition: none;
+}
+
 .sidebar.collapsed {
     width: 0 !important;
     min-width: 0 !important;
@@ -26,6 +31,41 @@
 .sidebar.collapsed .deck-list {
     opacity: 0;
     pointer-events: none;
+}
+
+/* Sidebar Expand Button (floats outside panel when collapsed) */
+.sidebar-expand {
+    display: none;
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--dark-gray);
+    border: 2px solid var(--gray);
+    color: var(--light-gray);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    z-index: 15;
+}
+
+.sidebar-expand:hover {
+    background-color: var(--gray);
+    border-color: var(--cyan);
+    color: var(--cyan);
+}
+
+.sidebar-expand .expand-icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* Show expand button when sidebar is collapsed */
+.sidebar.collapsed ~ .main-content .sidebar-expand {
+    display: flex;
 }
 
 .deck-list {

@@ -19,6 +19,7 @@ export const connectionLine = document.getElementById("connectionLine");
 
 // Sidebar elements
 export const sidebar = document.getElementById("sidebar");
+export const sidebarExpand = document.getElementById("sidebarExpand");
 
 // Mobile elements
 export const mobileMenuBtn = document.getElementById("mobileMenuBtn");

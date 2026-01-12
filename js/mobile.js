@@ -68,4 +68,11 @@ export function initMobileHandlers() {
             closeMobileMenu();
         }
     });
+
+    // Sidebar expand button (desktop - visible when sidebar is collapsed)
+    if (dom.sidebarExpand) {
+        dom.sidebarExpand.onclick = () => {
+            dom.sidebar.classList.remove("collapsed");
+        };
+    }
 }

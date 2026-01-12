@@ -9,7 +9,6 @@
     justify-content: center;
     background-color: var(--dark-gray);
     border: 1px solid var(--gray);
-    transition: all var(--transition-fast);
 }
 
 .resize-handle:hover,
@@ -86,7 +85,6 @@
     width: 16px;
     height: 48px;
     cursor: col-resize;
-    border-radius: var(--radius-sm);
 }
 
 /* Display resizer - left edge of card display */
@@ -97,7 +95,6 @@
     width: 16px;
     height: 48px;
     cursor: col-resize;
-    border-radius: var(--radius-sm);
 }
 
 /* Mobile render mode resizer - between card display and card links */
@@ -109,7 +106,6 @@
     width: 48px;
     height: 16px;
     cursor: row-resize;
-    border-radius: var(--radius-sm);
 }
 
 /* Body class during resize for cursor */
