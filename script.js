@@ -5,6 +5,14 @@ var isMobile = window.innerWidth <= 768;
 var isRenderMode = false;
 var currentCardData = null;
 
+// Autocomplete state
+var autocompleteResults = [];       // Current search results from Scryfall
+var autocompleteSelectedIndex = -1; // Currently highlighted index (-1 = none)
+var autocompleteTimer = null;       // Debounce timer for API calls
+var autocompleteVisible = false;    // Dropdown visibility state
+var lastCursorPosition = -1;        // Track cursor position for hiding on movement
+var autocompleteAbortController = null; // AbortController for canceling pending requests
+
 // URL parsing
 var isShareMode = window.location.pathname.startsWith('/share/');
 var shareId = isShareMode ? window.location.pathname.split('/share/')[1] : null;
@@ -43,6 +51,10 @@ var logoLink = document.getElementById("logoLink");
 var mobileLogoLink = document.getElementById("mobileLogoLink");
 var desktopHeader = document.getElementById("desktopHeader");
 var bookmarkWarning = document.getElementById("bookmarkWarning");
+
+// Autocomplete elements
+var autocompleteContainer = document.getElementById("autocompleteContainer");
+var autocompleteList = document.getElementById("autocompleteList");
 
 // Resize elements
 var sidebarResizer = document.getElementById("sidebarResizer");
@@ -525,13 +537,428 @@ async function get_card(cardName){
     return cardData;
 }
 
-editor.oninput = () => {
+// ========================================
+// Autocomplete Functions
+// ========================================
+
+// Get information about the current line where the cursor is
+function getCurrentLineInfo() {
+    const text = editor.value;
+    const cursorPos = editor.selectionStart;
+
+    // Find the start of the current line
+    let lineStart = text.lastIndexOf('\n', cursorPos - 1) + 1;
+
+    // Find the end of the current line
+    let lineEnd = text.indexOf('\n', cursorPos);
+    if (lineEnd === -1) lineEnd = text.length;
+
+    const lineText = text.substring(lineStart, lineEnd);
+    const cursorInLine = cursorPos - lineStart;
+
+    return {
+        lineText,
+        lineStart,
+        lineEnd,
+        cursorInLine,
+        cursorPos
+    };
+}
+
+// Parse card name from a line, stripping quantity prefix
+function parseCardNameFromLine(lineText) {
+    // Skip section headers
+    if (lineText.trim().startsWith('#')) {
+        return null;
+    }
+
+    // Skip empty lines
+    if (lineText.trim() === '') {
+        return null;
+    }
+
+    const tokens = lineText.trim().split(' ');
+    const firstToken = tokens[0];
+
+    // Check if first token is a quantity (number or ends with 'x')
+    if (!isNaN(firstToken) || (firstToken.endsWith('x') && !isNaN(firstToken.slice(0, -1)))) {
+        tokens.splice(0, 1);
+        return tokens.join(' ');
+    }
+
+    return lineText.trim();
+}
+
+// Search Scryfall API with debouncing
+async function searchScryfall(query) {
+    // Cancel any pending request
+    if (autocompleteAbortController) {
+        autocompleteAbortController.abort();
+    }
+
+    autocompleteAbortController = new AbortController();
+
+    try {
+        const response = await fetch(
+            `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}`,
+            { signal: autocompleteAbortController.signal }
+        );
+
+        if (!response.ok) {
+            return [];
+        }
+
+        const data = await response.json();
+
+        // Return first 10 results with name and mana_cost
+        return (data.data || []).slice(0, 10).map(card => ({
+            name: card.name,
+            mana_cost: card.mana_cost || ''
+        }));
+    } catch (error) {
+        // Ignore abort errors
+        if (error.name === 'AbortError') {
+            return [];
+        }
+        console.error('Scryfall search error:', error);
+        return [];
+    }
+}
+
+// Calculate dropdown position based on cursor
+function calculateDropdownPosition() {
+    const lineInfo = getCurrentLineInfo();
+
+    // Create a temporary span to measure text width
+    const measureSpan = document.createElement('span');
+    measureSpan.style.font = getComputedStyle(editor).font;
+    measureSpan.style.position = 'absolute';
+    measureSpan.style.visibility = 'hidden';
+    measureSpan.style.whiteSpace = 'pre';
+    measureSpan.textContent = lineInfo.lineText.substring(0, lineInfo.cursorInLine);
+    document.body.appendChild(measureSpan);
+
+    const textWidth = measureSpan.offsetWidth;
+    document.body.removeChild(measureSpan);
+
+    // Get editor position and styling
+    const editorRect = editor.getBoundingClientRect();
+    const editorStyles = getComputedStyle(editor);
+    const paddingLeft = parseFloat(editorStyles.paddingLeft);
+    const paddingTop = parseFloat(editorStyles.paddingTop);
+    const lineHeight = parseFloat(editorStyles.lineHeight);
+
+    // Count lines before cursor
+    const textBeforeCursor = editor.value.substring(0, lineInfo.cursorPos);
+    const lineCount = textBeforeCursor.split('\n').length;
+
+    // Calculate position relative to editor wrapper
+    const left = paddingLeft + textWidth;
+    const top = paddingTop + (lineCount * lineHeight) - editor.scrollTop;
+
+    return { left, top };
+}
+
+// Show autocomplete dropdown
+function showAutocomplete(results) {
+    if (results.length === 0) {
+        hideAutocomplete();
+        return;
+    }
+
+    autocompleteResults = results;
+    autocompleteSelectedIndex = -1;
+
+    // Clear and populate list
+    autocompleteList.innerHTML = '';
+    results.forEach((result, index) => {
+        const li = document.createElement('li');
+        li.classList.add('autocomplete-item');
+        li.dataset.index = index;
+
+        const nameSpan = document.createElement('span');
+        nameSpan.classList.add('autocomplete-item-name');
+        nameSpan.textContent = result.name;
+
+        const manaSpan = document.createElement('span');
+        manaSpan.classList.add('autocomplete-item-mana');
+        manaSpan.textContent = result.mana_cost;
+
+        li.appendChild(nameSpan);
+        li.appendChild(manaSpan);
+
+        // Mouse handlers
+        li.addEventListener('mouseenter', () => {
+            updateAutocompleteSelection(index);
+        });
+        li.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // Prevent blur
+            selectAutocomplete(index);
+        });
+
+        autocompleteList.appendChild(li);
+    });
+
+    // Position the dropdown
+    const position = calculateDropdownPosition();
+    autocompleteContainer.style.left = position.left + 'px';
+    autocompleteContainer.style.top = position.top + 'px';
+
+    // Show dropdown
+    autocompleteContainer.classList.add('visible');
+    autocompleteVisible = true;
+}
+
+// Hide autocomplete dropdown
+function hideAutocomplete() {
+    autocompleteContainer.classList.remove('visible');
+    autocompleteVisible = false;
+    autocompleteResults = [];
+    autocompleteSelectedIndex = -1;
+    autocompleteList.innerHTML = '';
+
+    // Cancel any pending search
+    if (autocompleteTimer) {
+        clearTimeout(autocompleteTimer);
+        autocompleteTimer = null;
+    }
+
+    // Cancel any pending request
+    if (autocompleteAbortController) {
+        autocompleteAbortController.abort();
+        autocompleteAbortController = null;
+    }
+}
+
+// Update visual selection in dropdown
+function updateAutocompleteSelection(index) {
+    const items = autocompleteList.querySelectorAll('.autocomplete-item');
+    items.forEach((item, i) => {
+        item.classList.toggle('selected', i === index);
+    });
+    autocompleteSelectedIndex = index;
+
+    // Scroll selected item into view
+    if (index >= 0 && items[index]) {
+        items[index].scrollIntoView({ block: 'nearest' });
+    }
+}
+
+// Select an autocomplete suggestion and insert it
+function selectAutocomplete(index) {
+    if (index < 0 || index >= autocompleteResults.length) {
+        // If no selection, use first result
+        if (autocompleteResults.length > 0) {
+            index = 0;
+        } else {
+            hideAutocomplete();
+            return;
+        }
+    }
+
+    const selectedCard = autocompleteResults[index];
+    const lineInfo = getCurrentLineInfo();
+
+    // Parse the current line to get quantity prefix
+    const lineText = lineInfo.lineText;
+    const tokens = lineText.trim().split(' ');
+    const firstToken = tokens[0];
+
+    let newLineText;
+    if (!isNaN(firstToken) || (firstToken.endsWith('x') && !isNaN(firstToken.slice(0, -1)))) {
+        // Preserve quantity prefix
+        newLineText = firstToken + ' ' + selectedCard.name;
+    } else {
+        // No quantity prefix
+        newLineText = selectedCard.name;
+    }
+
+    // Replace the current line with the new text
+    const beforeLine = editor.value.substring(0, lineInfo.lineStart);
+    const afterLine = editor.value.substring(lineInfo.lineEnd);
+    editor.value = beforeLine + newLineText + afterLine;
+
+    // Set cursor to end of inserted text
+    const newCursorPos = lineInfo.lineStart + newLineText.length;
+    editor.selectionStart = newCursorPos;
+    editor.selectionEnd = newCursorPos;
+
+    // Update last cursor position
+    lastCursorPosition = newCursorPos;
+
+    // Hide autocomplete
+    hideAutocomplete();
+
+    // Trigger data update and save
+    updateData(editor.value);
+    setDeckList();
+    save();
+
+    // Focus back on editor
+    editor.focus();
+}
+
+// Trigger autocomplete search (debounced)
+function triggerAutocomplete() {
+    // Cancel any pending search
+    if (autocompleteTimer) {
+        clearTimeout(autocompleteTimer);
+    }
+
+    const lineInfo = getCurrentLineInfo();
+    const cardName = parseCardNameFromLine(lineInfo.lineText);
+
+    // Don't search if card name is too short or invalid
+    if (!cardName || cardName.length < 3) {
+        hideAutocomplete();
+        return;
+    }
+
+    // Update last cursor position
+    lastCursorPosition = lineInfo.cursorPos;
+
+    // Debounce the API call (300ms)
+    autocompleteTimer = setTimeout(async () => {
+        const results = await searchScryfall(cardName);
+
+        // Only show if we're still on the same position and have results
+        if (editor.selectionStart === lastCursorPosition && results.length > 0) {
+            showAutocomplete(results);
+        } else if (results.length === 0) {
+            hideAutocomplete();
+        }
+    }, 300);
+}
+
+// Handle keyboard events for autocomplete
+function handleAutocompleteKeydown(e) {
+    if (!autocompleteVisible) {
+        return false;
+    }
+
+    switch (e.key) {
+        case 'Tab':
+            e.preventDefault();
+            // Select first item if none selected, otherwise select current
+            const tabIndex = autocompleteSelectedIndex >= 0 ? autocompleteSelectedIndex : 0;
+            selectAutocomplete(tabIndex);
+            return true;
+
+        case 'ArrowDown':
+            e.preventDefault();
+            const nextIndex = autocompleteSelectedIndex < autocompleteResults.length - 1
+                ? autocompleteSelectedIndex + 1
+                : 0;
+            updateAutocompleteSelection(nextIndex);
+            return true;
+
+        case 'ArrowUp':
+            e.preventDefault();
+            const prevIndex = autocompleteSelectedIndex > 0
+                ? autocompleteSelectedIndex - 1
+                : autocompleteResults.length - 1;
+            updateAutocompleteSelection(prevIndex);
+            return true;
+
+        case 'Enter':
+            // Only intercept Enter if an item is explicitly selected
+            if (autocompleteSelectedIndex >= 0) {
+                e.preventDefault();
+                selectAutocomplete(autocompleteSelectedIndex);
+                return true;
+            }
+            // Otherwise, hide autocomplete and let Enter add newline
+            hideAutocomplete();
+            return false;
+
+        case 'Escape':
+            e.preventDefault();
+            hideAutocomplete();
+            return true;
+    }
+
+    return false;
+}
+
+// Check if cursor has moved and hide autocomplete if it has
+function checkCursorMovement() {
+    if (!autocompleteVisible) return;
+
+    const currentPos = editor.selectionStart;
+
+    // Check if cursor moved to a different line
+    const currentLineInfo = getCurrentLineInfo();
+    const lastLineInfo = (() => {
+        const text = editor.value;
+        let lineStart = text.lastIndexOf('\n', lastCursorPosition - 1) + 1;
+        return lineStart;
+    })();
+
+    const currentLineStart = editor.value.lastIndexOf('\n', currentPos - 1) + 1;
+
+    // Hide if cursor moved to different line
+    if (currentLineStart !== lastLineInfo) {
+        hideAutocomplete();
+    }
+}
+
+editor.oninput = (e) => {
     editor.style.height = "";
     editor.style.height = editor.scrollHeight + "px";
     updateData(editor.value);
     setDeckList();
     save();
+
+    // Trigger autocomplete (unless this was triggered by autocomplete selection)
+    if (!isShareMode) {
+        triggerAutocomplete();
+    }
 }
+
+// Keyboard event handler for autocomplete navigation
+editor.addEventListener('keydown', (e) => {
+    // Handle autocomplete keyboard navigation
+    if (handleAutocompleteKeydown(e)) {
+        return;
+    }
+
+    // Hide autocomplete on Enter (newline)
+    if (e.key === 'Enter' && autocompleteVisible) {
+        hideAutocomplete();
+    }
+});
+
+// Hide autocomplete when cursor moves via click
+editor.addEventListener('click', () => {
+    checkCursorMovement();
+});
+
+// Hide autocomplete when selection changes (arrow keys without autocomplete, etc.)
+editor.addEventListener('keyup', (e) => {
+    // Only check for navigation keys that might move cursor
+    if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) {
+        checkCursorMovement();
+    }
+});
+
+// Hide autocomplete on blur (with small delay to allow click selection)
+editor.addEventListener('blur', () => {
+    setTimeout(() => {
+        if (!autocompleteContainer.contains(document.activeElement)) {
+            hideAutocomplete();
+        }
+    }, 150);
+});
+
+// Hide autocomplete when scrolling the editor
+editor.addEventListener('scroll', () => {
+    if (autocompleteVisible) {
+        // Reposition the dropdown when scrolling
+        const position = calculateDropdownPosition();
+        autocompleteContainer.style.left = position.left + 'px';
+        autocompleteContainer.style.top = position.top + 'px';
+    }
+});
 
 function switchDeck(index){
     return () => {

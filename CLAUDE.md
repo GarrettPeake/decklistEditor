@@ -6,7 +6,7 @@ Decklist Editor is a web-based application for creating, managing, and organizin
 
 **Author**: Garrett Peake
 **License**: MIT
-**Version**: 1.1.0
+**Version**: 1.2.0
 
 ## Architecture Overview
 
@@ -95,6 +95,14 @@ The frontend manages deck editing, card lookups, URL routing, and UI interaction
 - `currentUser`: Username parsed from URL
 - `initialDeckId`: Deck ID parsed from URL for deep linking
 
+**Autocomplete State Variables**:
+- `autocompleteResults`: Array of current search results from Scryfall
+- `autocompleteSelectedIndex`: Currently highlighted index (-1 = none)
+- `autocompleteTimer`: Debounce timer for API calls (300ms delay)
+- `autocompleteVisible`: Boolean for dropdown visibility state
+- `lastCursorPosition`: Tracks cursor position to detect movement
+- `autocompleteAbortController`: AbortController for canceling pending API requests
+
 **Key Functions**:
 
 - `load()` (script.js:58-84): Fetches user/share data from API on startup
@@ -110,6 +118,19 @@ The frontend manages deck editing, card lookups, URL routing, and UI interaction
 - `get_card()` (script.js:394-406): Fetches card data from Scryfall API
 - `switchDeck()` (script.js:416-432): Changes active deck and updates URL
 - `updateRenderToggleIcon()` (script.js:458-470): Updates mobile toggle button icon
+
+**Autocomplete Functions**:
+- `getCurrentLineInfo()` (script.js:544-566): Returns current line text, position, and cursor info
+- `parseCardNameFromLine(lineText)` (script.js:568-590): Extracts card name, stripping quantity prefix
+- `searchScryfall(query)` (script.js:592-626): Fetches card search results from Scryfall API
+- `calculateDropdownPosition()` (script.js:628-660): Calculates dropdown position based on cursor
+- `showAutocomplete(results)` (script.js:662-710): Displays autocomplete dropdown with results
+- `hideAutocomplete()` (script.js:712-731): Hides dropdown and cancels pending requests
+- `updateAutocompleteSelection(index)` (script.js:733-745): Updates visual selection in dropdown
+- `selectAutocomplete(index)` (script.js:747-799): Inserts selected card name into editor
+- `triggerAutocomplete()` (script.js:801-831): Debounced trigger for autocomplete search
+- `handleAutocompleteKeydown(e)` (script.js:833-881): Handles keyboard navigation (Tab, arrows, Enter, Escape)
+- `checkCursorMovement()` (script.js:883-903): Detects cursor movement to hide autocomplete
 
 **URL Routing**:
 - Parses `/{user}` and `/{user}/{deckId}` patterns
@@ -128,6 +149,17 @@ The frontend manages deck editing, card lookups, URL routing, and UI interaction
 - Card names are auto-linked to Scryfall pages
 - **Desktop**: Hover over card names to display images, click to open Scryfall
 - **Mobile**: Tap card names to display images, tap images to open Scryfall
+
+**Autocomplete Interactions**:
+- Typing 3+ characters triggers autocomplete dropdown (after 300ms debounce)
+- **Tab**: Selects first/highlighted suggestion
+- **Up/Down arrows**: Navigate through suggestions
+- **Enter** (with selection): Selects highlighted suggestion
+- **Enter** (no selection): Adds newline, hides autocomplete
+- **Escape**: Hides autocomplete without selecting
+- **Click outside**: Hides autocomplete
+- Cursor movement to different line hides autocomplete
+- Shows card name and mana cost in dropdown (first 10 results, 5 visible with scroll)
 
 ### 3. User Interface (`index.html`)
 
@@ -164,6 +196,11 @@ The frontend manages deck editing, card lookups, URL routing, and UI interaction
 - Spellcheck disabled for card names
 - Placeholder instructions for new users
 - Auto-expanding textarea based on content
+
+**Autocomplete Container** (index.html:93-96):
+- Positioned absolutely within `.editor-wrapper`
+- Contains `ul.autocomplete-list` for suggestion items
+- Hidden by default, shown via `.visible` class
 
 **Asset Paths**:
 - CSS and JS use absolute paths (`/styles.css`, `/script.js`)
@@ -204,6 +241,15 @@ The frontend manages deck editing, card lookups, URL routing, and UI interaction
 - Hides sidebar, header, editor
 - Full-width card links panel
 - Mobile-responsive adjustments
+
+**Autocomplete Styling** (styles.css:1475-1588):
+- `.editor-wrapper`: Relative positioning container for dropdown
+- `.autocomplete-container`: Absolute positioned dropdown with cyan border
+- `.autocomplete-list`: Scrollable list (max-height 200px, ~5 visible items)
+- `.autocomplete-item`: Individual suggestions with hover/selected states
+- `.autocomplete-item-name`: Card name display
+- `.autocomplete-item-mana`: Mana cost display (right-aligned)
+- Mobile adjustments for smaller screens
 
 **Responsive Breakpoints**:
 - **Mobile** (≤768px): Single column, header with dropdown, floating render toggle
@@ -310,6 +356,14 @@ id = "bb576df04a11477f935a3b59ae24ba18"
 - Hover to preview, click to open Scryfall page
 - Visual indicators for unfound cards (red text)
 
+### Autocomplete
+- Non-intrusive autocomplete in editor (triggers after 3+ characters)
+- Shows card name and mana cost from Scryfall search API
+- Keyboard navigation: Tab (select first), Up/Down (navigate), Enter (select/newline), Escape (close)
+- Preserves quantity prefix when selecting (e.g., "4x " stays)
+- Debounced API requests (300ms) to prevent rate limiting
+- Auto-hides on cursor movement, newline, or click outside
+
 ### Data Persistence
 - User-scoped storage via URL path
 - Edge-cached KV storage for low latency
@@ -352,6 +406,8 @@ This starts a local development server with hot reloading.
 - **Debounced Parsing**: 500ms delay for card link updates
 - **Link Caching**: LocalStorage prevents redundant Scryfall API calls
 - **Edge Computing**: Cloudflare Workers provide global low-latency access
+- **Debounced Autocomplete**: 300ms delay prevents excessive Scryfall API calls during typing
+- **Request Cancellation**: Uses AbortController to cancel pending autocomplete requests when new input arrives
 
 ### Browser Compatibility
 
@@ -384,6 +440,9 @@ The system automatically handles legacy data:
 
 ### Scryfall API
 
+The application uses two Scryfall API endpoints:
+
+#### Card Lookup (Exact Match)
 **Endpoint**: `https://api.scryfall.com/cards/named?exact={cardName}`
 
 **Response Structure** (relevant fields):
@@ -406,6 +465,29 @@ The system automatically handles legacy data:
 **Usage Pattern**:
 - Single-faced cards: `image_uris.border_crop`
 - Double-faced cards: `card_faces[0].image_uris.border_crop` and `card_faces[1].image_uris.border_crop`
+
+#### Card Search (Autocomplete)
+**Endpoint**: `https://api.scryfall.com/cards/search?q={query}`
+
+**Response Structure** (relevant fields):
+```json
+{
+  "data": [
+    {
+      "name": "Lightning Bolt",
+      "mana_cost": "{R}"
+    }
+  ]
+}
+```
+
+**Usage Pattern**:
+- Returns first 10 results for autocomplete dropdown
+- Displays card name and mana cost
+- Uses debouncing (300ms) to avoid spamming the API
+- Uses AbortController to cancel pending requests on new input
+
+**Rate Limiting Note**: Scryfall requests that applications limit requests to 10 per second. The 300ms debounce and request cancellation help ensure compliance with this guideline. Future enhancements should maintain this rate limiting approach.
 
 ## User Workflow
 
@@ -476,6 +558,8 @@ My Burn Deck
 - Drag-and-drop deck reordering
 - Deck categorization and search
 - Collaborative deck editing
+- Enhanced autocomplete with card images/previews
+- Autocomplete filtering by card type, color, format legality
 
 ## Troubleshooting
 
@@ -509,6 +593,7 @@ My Burn Deck
 ## Repository History
 
 Recent commits show:
+- Scryfall search API autocomplete in editor (v1.2.0)
 - Deck sharing feature with live references
 - Deck UUIDs for bookmarkable URLs
 - Data migration for legacy formats
@@ -518,6 +603,18 @@ Recent commits show:
 ## Contributing
 
 This repository uses the MIT license. Contributions should maintain the existing code style and architecture patterns.
+
+### PR Requirements
+
+**IMPORTANT: All pull requests MUST update this CLAUDE.md file to document any changes made.** This includes:
+
+1. **New Features**: Add documentation for new state variables, functions, UI components, and user interactions
+2. **API Changes**: Update API endpoint documentation and response structures
+3. **CSS Changes**: Document new styling classes and responsive adjustments
+4. **Performance Changes**: Note any new optimizations or rate limiting considerations
+5. **Version Updates**: Increment the version number in the Project Summary section
+
+PRs that modify code without corresponding CLAUDE.md updates will not be merged. This ensures the documentation stays current and useful for all contributors.
 
 ## Contact
 

@@ -88,7 +88,13 @@
             <!-- Main Content Area -->
             <main id="mainContent" class="main-content">
                 <div id="syncScroll" class="scrollable editor-container">
-                    <textarea spellcheck="false" id="editor" class="editor-textarea" placeholder="Start typing here to create a new deck. The first line is the title&#13;&#10;&#13;&#10;Card links will appear to the right as you type. Click a link to open the card's scryfall page or just hover over it to see the card&#13;&#10;&#13;&#10;You can add section headers like #header and card quantities like '4x Rat'"></textarea>
+                    <div class="editor-wrapper">
+                        <textarea spellcheck="false" id="editor" class="editor-textarea" placeholder="Start typing here to create a new deck. The first line is the title&#13;&#10;&#13;&#10;Card links will appear to the right as you type. Click a link to open the card's scryfall page or just hover over it to see the card&#13;&#10;&#13;&#10;You can add section headers like #header and card quantities like '4x Rat'"></textarea>
+                        <!-- Autocomplete Dropdown -->
+                        <div id="autocompleteContainer" class="autocomplete-container">
+                            <ul id="autocompleteList" class="autocomplete-list"></ul>
+                        </div>
+                    </div>
                     <!-- Resize handle for editor/card-links -->
                     <div id="editorResizer" class="resize-handle editor-resizer"></div>
                     <span id="hovers" class="card-links"></span>
