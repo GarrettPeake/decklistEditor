@@ -1,0 +1,40 @@
+/* ========================================
+   Resize Handles
+   ======================================== */
+.resize-handle {
+    position: absolute;
+    background-color: transparent;
+    z-index: 20;
+    transition: background-color var(--transition-fast);
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+    background-color: var(--cyan);
+}
+
+.sidebar-resizer {
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+}
+
+.editor-resizer {
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    transform: translateX(-50%);
+    z-index: 25;
+}
+
+.display-resizer {
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+}

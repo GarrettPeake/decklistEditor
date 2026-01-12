@@ -1,0 +1,266 @@
+/* ========================================
+   Mobile Styles
+   ======================================== */
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+
+    .desktop-header {
+        display: none;
+    }
+
+    .mobile-header {
+        display: flex;
+    }
+
+    .mobile-dropdown {
+        display: block;
+    }
+
+    .app-container {
+        flex-direction: column;
+        height: calc(100vh - 56px);
+        margin-top: 56px;
+    }
+
+    .sidebar {
+        display: none;
+    }
+
+    .sidebar-expand {
+        display: none !important;
+    }
+
+    .main-content {
+        flex-direction: column;
+        height: 100%;
+    }
+
+    /* Hide resize handles on mobile */
+    .sidebar-resizer,
+    .display-resizer,
+    .editor-resizer {
+        display: none;
+    }
+
+    /* Mobile Edit Mode (default) */
+    .editor-container {
+        flex-direction: column;
+        height: 100%;
+        border-right: none;
+    }
+
+    .editor-wrapper {
+        width: 100%;
+        flex: 1;
+        min-width: 100%;
+    }
+
+    .editor-textarea {
+        width: 100%;
+        flex: 1;
+        min-height: 200px;
+        padding: 16px;
+    }
+
+    .card-links {
+        display: none;
+        border-left: none;
+        border-top: 2px solid var(--grid-border);
+        padding: 16px;
+    }
+
+    .card-display {
+        display: none;
+        width: 100%;
+        min-width: 100%;
+        height: 25vh;
+        padding: 12px;
+    }
+
+    /* Mobile Render Mode */
+    body.render-mode .editor-textarea {
+        display: none;
+    }
+
+    body.render-mode .card-links {
+        display: flex;
+        flex: 1;
+        min-width: 100%;
+        overflow-y: auto;
+        padding: 16px 16px 16px 56px;
+    }
+
+    body.render-mode .card-display {
+        display: flex;
+        height: 30vh;
+        min-height: 30vh;
+        order: -1;
+    }
+
+    body.render-mode .editor-container {
+        flex-direction: column-reverse;
+        height: 100%;
+    }
+
+    .render-toggle {
+        display: flex;
+    }
+
+    .oneCard,
+    .twoCard {
+        max-height: 100%;
+        max-width: auto;
+    }
+
+    .twoCard {
+        max-width: 48%;
+    }
+
+    /* Mobile card link tap styling */
+    .CardLink.selected {
+        background-color: var(--orange);
+        padding: 2px 6px;
+        color: var(--black);
+        font-weight: 700;
+    }
+
+    /* Mobile deck items */
+    .deck-action-btn {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+    }
+
+    .deck-action-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Landing page mobile */
+    .landing-title {
+        font-size: 2.5rem;
+    }
+
+    .landing-subtitle {
+        font-size: 1rem;
+    }
+
+    .landing-cta {
+        padding: 14px 36px;
+        font-size: 1rem;
+    }
+
+    /* Hide corner brackets on mobile */
+    .corner-brackets {
+        display: none;
+    }
+
+    /* Hide connection line on mobile */
+    .connection-line {
+        display: none !important;
+    }
+
+    /* Adjust card quantity position for mobile */
+    .card-quantity {
+        left: -44px;
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+
+    /* Mobile autocomplete adjustments */
+    .autocomplete-container {
+        max-width: calc(100vw - 32px);
+        min-width: 200px;
+    }
+
+    .autocomplete-item {
+        padding: 12px 14px;
+    }
+
+    .autocomplete-item-name {
+        font-size: 0.85rem;
+    }
+}
+
+/* ========================================
+   Tablet Adjustments
+   ======================================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .sidebar {
+        width: 200px;
+    }
+
+    .card-display {
+        width: 340px;
+        min-width: 260px;
+    }
+
+    .bookmark-warning span {
+        display: none;
+    }
+
+    .bookmark-warning {
+        padding: 6px;
+    }
+}
+
+/* ========================================
+   Large Desktop
+   ======================================== */
+@media (min-width: 1400px) {
+    .sidebar {
+        width: 280px;
+        min-width: 280px;
+    }
+
+    .editor-textarea,
+    .card-links {
+        padding: 32px;
+    }
+
+    .card-links {
+        padding-left: 80px;
+    }
+}
+
+/* ========================================
+   Share Mode Mobile
+   ======================================== */
+@media (max-width: 768px) {
+    body.share-mode .mobile-header {
+        display: flex;
+        justify-content: center;
+    }
+
+    body.share-mode .app-container {
+        margin-top: 56px;
+        height: calc(100vh - 56px);
+    }
+
+    body.share-mode .main-content {
+        flex-direction: column-reverse;
+        height: 100%;
+    }
+
+    body.share-mode .editor-container {
+        flex-direction: column-reverse;
+        height: 100%;
+    }
+
+    body.share-mode .card-links {
+        display: flex;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    body.share-mode .card-display {
+        display: flex;
+        height: 30vh;
+        min-height: 30vh;
+        width: 100%;
+        min-width: 100%;
+    }
+}

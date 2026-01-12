@@ -1,0 +1,133 @@
+/* ========================================
+   Status Bar Header (Desktop)
+   ======================================== */
+.desktop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--header-height);
+    padding: 0 20px;
+    background-color: var(--black);
+    border-bottom: 2px solid var(--grid-border);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 100;
+}
+
+.logo-link {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--white);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.bookmark-warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background-color: transparent;
+    border: 2px solid var(--yellow);
+    font-size: 0.75rem;
+    color: var(--yellow);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.warning-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/* ========================================
+   Mobile Header
+   ======================================== */
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background-color: var(--black);
+    border-bottom: 2px solid var(--grid-border);
+    padding: 0 16px;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 100;
+}
+
+.mobile-title {
+    font-size: 1rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--white);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.mobile-menu-btn {
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    background: transparent;
+    border: 2px solid var(--gray);
+    color: var(--white);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.mobile-menu-btn:hover,
+.mobile-menu-btn:focus {
+    background-color: var(--gray);
+    border-color: var(--cyan);
+    outline: none;
+}
+
+.menu-icon {
+    width: 24px;
+    height: 24px;
+}
+
+/* ========================================
+   Mobile Dropdown
+   ======================================== */
+.mobile-dropdown {
+    display: none;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    max-height: 0;
+    overflow: hidden;
+    background-color: var(--near-black);
+    border-bottom: 2px solid var(--grid-border);
+    z-index: 99;
+    transition: max-height var(--transition-normal);
+}
+
+.mobile-dropdown.open {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.mobile-decks-list {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
