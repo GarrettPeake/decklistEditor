@@ -1,0 +1,75 @@
+/* ========================================
+   Card Links (Stacked Design)
+   ======================================== */
+.card-links {
+    flex: 1;
+    min-width: 45%;
+    padding: 24px 24px 24px 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-left: 2px solid var(--grid-border);
+    background-color: var(--near-black);
+    position: relative;
+    overflow-y: auto;
+}
+
+.card-stack {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.card-item {
+    background: var(--dark-gray);
+    border: 2px solid var(--gray);
+    position: relative;
+    height: 40px;
+    margin-top: -2px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.card-item:first-child {
+    margin-top: 0;
+}
+
+.card-item:hover {
+    z-index: 10;
+    transform: translateX(8px) scale(1.02);
+    border-color: var(--cyan);
+    background: var(--gray);
+}
+
+.card-quantity {
+    position: absolute;
+    left: -48px;
+    width: 36px;
+    height: 36px;
+    background: var(--orange);
+    border: 2px solid var(--orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--black);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.card-item:hover .card-quantity {
+    background: var(--cyan);
+    border-color: var(--cyan);
+}
+
+.card-name {
+    padding: 0 16px;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--white);
+}

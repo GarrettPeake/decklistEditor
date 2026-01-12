@@ -1,0 +1,85 @@
+/* ========================================
+   Autocomplete Dropdown
+   ======================================== */
+.autocomplete-container {
+    display: none;
+    position: absolute;
+    z-index: 1000;
+    background-color: var(--near-black);
+    border: 2px solid var(--cyan);
+    max-width: 400px;
+    min-width: 250px;
+    box-shadow: var(--shadow-lg);
+}
+
+.autocomplete-container.visible {
+    display: block;
+}
+
+.autocomplete-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 200px; /* Show ~5 items */
+    overflow-y: auto;
+}
+
+.autocomplete-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--grid-border);
+    transition: background-color var(--transition-fast);
+    gap: 12px;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.selected {
+    background-color: var(--dark-gray);
+}
+
+.autocomplete-item.selected {
+    border-left: 3px solid var(--cyan);
+    padding-left: 11px;
+}
+
+.autocomplete-item-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--white);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.autocomplete-item-mana {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--light-gray);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Autocomplete scrollbar */
+.autocomplete-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.autocomplete-list::-webkit-scrollbar-track {
+    background: var(--dark-gray);
+}
+
+.autocomplete-list::-webkit-scrollbar-thumb {
+    background: var(--gray);
+}
+
+.autocomplete-list::-webkit-scrollbar-thumb:hover {
+    background: var(--light-gray);
+}

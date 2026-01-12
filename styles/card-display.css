@@ -1,0 +1,150 @@
+/* ========================================
+   Card Display
+   ======================================== */
+.card-display {
+    width: 420px;
+    min-width: 280px;
+    max-width: 600px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    background-color: var(--black);
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-preview-container {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    height: 450px;
+    display: none;
+}
+
+.card-preview-container.active {
+    display: block;
+    animation: cardEnter 0.3s ease;
+}
+
+@keyframes cardEnter {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius-lg);
+    position: relative;
+    z-index: 2;
+}
+
+/* Blueprint centering lines */
+.blueprint-lines {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% + 20px);
+    height: calc(100% + 20px);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.blueprint-line {
+    position: absolute;
+    border: 1px dashed var(--cyan);
+    opacity: 0.6;
+}
+
+.blueprint-line.horizontal {
+    width: 200vw;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.blueprint-line.vertical {
+    height: 200vh;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.blueprint-line.top {
+    top: 0;
+}
+
+.blueprint-line.bottom {
+    bottom: 0;
+}
+
+.blueprint-line.left {
+    left: 0;
+}
+
+.blueprint-line.right {
+    right: 0;
+}
+
+/* Empty state */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--gray);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-align: center;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+}
+
+/* ========================================
+   Card Images
+   ======================================== */
+.oneCard {
+    max-width: 90%;
+    max-height: 85vh;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    transition: transform var(--transition-normal);
+}
+
+.oneCard:hover {
+    transform: scale(1.02);
+}
+
+.twoCard {
+    max-width: 45%;
+    max-height: 80vh;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    transition: transform var(--transition-normal);
+}
+
+.twoCard:hover {
+    transform: scale(1.02);
+}
+
+.card-image-clickable {
+    cursor: pointer;
+}

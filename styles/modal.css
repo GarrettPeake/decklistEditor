@@ -1,0 +1,103 @@
+/* ========================================
+   Share Modal
+   ======================================== */
+.share-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.share-modal.open {
+    display: flex;
+}
+
+.share-modal-content {
+    background-color: var(--near-black);
+    border: 2px solid var(--grid-border);
+    padding: 32px;
+    max-width: 500px;
+    width: 90%;
+    position: relative;
+    box-shadow: var(--shadow-lg);
+}
+
+.share-modal-content h2 {
+    margin: 0 0 8px 0;
+    font-size: 1.5rem;
+    color: var(--white);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.share-modal-content p {
+    color: var(--light-gray);
+    margin-bottom: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+}
+
+.share-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 2px solid var(--gray);
+    color: var(--light-gray);
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.share-modal-close:hover {
+    background-color: var(--danger);
+    border-color: var(--danger);
+    color: var(--white);
+}
+
+.share-url-container {
+    display: flex;
+    gap: 8px;
+}
+
+.share-url-input {
+    flex: 1;
+    padding: 12px 16px;
+    background-color: var(--dark-gray);
+    border: 2px solid var(--gray);
+    color: var(--white);
+    font-size: 0.9rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.share-url-input:focus {
+    outline: 2px solid var(--cyan);
+    outline-offset: 0;
+    border-color: var(--cyan);
+}
+
+.copy-share-btn {
+    padding: 12px 24px;
+    background-color: var(--orange);
+    border: 2px solid var(--orange);
+    color: var(--black);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.copy-share-btn:hover {
+    background-color: var(--cyan);
+    border-color: var(--cyan);
+}

@@ -1,0 +1,72 @@
+/* ========================================
+   Landing Page
+   ======================================== */
+.landing-page {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--black);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+body.landing-mode .landing-page {
+    display: flex;
+}
+
+body.landing-mode .desktop-header,
+body.landing-mode .mobile-header,
+body.landing-mode .sidebar,
+body.landing-mode .main-content,
+body.landing-mode .mobile-dropdown,
+body.landing-mode .render-toggle,
+body.landing-mode .sidebar-expand {
+    display: none !important;
+}
+
+.landing-content {
+    text-align: center;
+    padding: 40px;
+    max-width: 600px;
+    position: relative;
+    z-index: 2;
+}
+
+.landing-title {
+    font-size: 4rem;
+    font-weight: 800;
+    margin: 0 0 16px 0;
+    color: var(--white);
+    letter-spacing: -2px;
+}
+
+.landing-subtitle {
+    font-size: 1.25rem;
+    color: var(--light-gray);
+    margin: 0 0 40px 0;
+    line-height: 1.6;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.landing-cta {
+    padding: 16px 48px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: var(--orange);
+    border: 2px solid var(--orange);
+    color: var(--black);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.landing-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 var(--cyan);
+}

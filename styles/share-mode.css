@@ -1,0 +1,43 @@
+/* ========================================
+   Share Mode (Read-only view)
+   ======================================== */
+body.share-mode .sidebar {
+    display: none;
+}
+
+body.share-mode .sidebar-expand {
+    display: none !important;
+}
+
+body.share-mode .sidebar-resizer {
+    display: none;
+}
+
+body.share-mode .mobile-dropdown {
+    display: none;
+}
+
+body.share-mode .render-toggle {
+    display: none !important;
+}
+
+body.share-mode .editor-textarea {
+    display: none;
+}
+
+body.share-mode .editor-resizer {
+    display: none;
+}
+
+body.share-mode .card-links {
+    flex: 1;
+    border-left: none;
+}
+
+body.share-mode .bookmark-warning {
+    display: none;
+}
+
+body.share-mode .mobile-menu-btn {
+    display: none;
+}

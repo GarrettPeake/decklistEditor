@@ -6,7 +6,7 @@ Decklist Editor is a web-based application for creating, managing, and organizin
 
 **Author**: Garrett Peake
 **License**: MIT
-**Version**: 1.2.0
+**Version**: 1.3.0
 
 ## Architecture Overview
 
@@ -24,13 +24,44 @@ Decklist Editor is a web-based application for creating, managing, and organizin
 decklistEditor/
 ├── src/
 │   └── index.js          # Cloudflare Worker entry point
+├── js/                   # Frontend ES modules
+│   ├── main.js           # Entry point, orchestrates initialization
+│   ├── state.js          # Application state and configuration
+│   ├── dom.js            # Centralized DOM element references
+│   ├── api.js            # API calls (load, save, share, Scryfall)
+│   ├── router.js         # URL parsing and history management
+│   ├── deckList.js       # Deck list rendering and switching
+│   ├── cardDisplay.js    # Card preview and Scryfall integration
+│   ├── autocomplete.js   # Card name autocomplete functionality
+│   ├── resizer.js        # Panel resize functionality
+│   ├── landing.js        # Landing page setup
+│   └── mobile.js         # Mobile-specific UI handlers
+├── styles/               # Modular CSS
+│   ├── main.css          # Entry point, imports all modules
+│   ├── variables.css     # CSS custom properties (design tokens)
+│   ├── base.css          # Reset, typography, scrollbars
+│   ├── layout.css        # Grid overlay, app container
+│   ├── header.css        # Desktop and mobile headers
+│   ├── sidebar.css       # Sidebar, deck list, deck items
+│   ├── buttons.css       # All button styles
+│   ├── editor.css        # Editor textarea and wrapper
+│   ├── card-links.css    # Stacked card design
+│   ├── card-display.css  # Card preview area
+│   ├── modal.css         # Share modal
+│   ├── autocomplete.css  # Autocomplete dropdown
+│   ├── landing.css       # Landing page
+│   ├── resize.css        # Resize handles
+│   ├── share-mode.css    # Read-only view overrides
+│   └── responsive.css    # All media queries
 ├── index.html            # Main application UI
-├── script.js             # Frontend application logic
-├── styles.css            # Application styling
+├── script.js             # Legacy frontend (deprecated)
+├── styles.css            # Legacy styles (deprecated)
 ├── wrangler.toml         # Cloudflare Worker configuration
 ├── package.json          # Node.js project configuration
-└── .gitignore           # Git ignore rules
+└── .gitignore            # Git ignore rules
 ```
+
+**Note**: The `script.js` and `styles.css` files in the root are legacy files kept for reference. The application now uses the modular files in `/js/` and `/styles/` directories.
 
 ## Component Details
 
@@ -80,58 +111,114 @@ The Worker serves as the backend API and static asset server.
 - Auto-assigns UUIDs to migrated decks
 - Saves migrated data with new prefix
 
-### 2. Frontend Application (`script.js`)
+### 2. Frontend Application (`js/` modules)
 
-The frontend manages deck editing, card lookups, URL routing, and UI interactions.
+The frontend is organized into ES modules for maintainability. Each module has a single responsibility.
 
-**Core State Variables**:
+#### Module Overview
+
+| Module | Purpose |
+|--------|---------|
+| `main.js` | Entry point, orchestrates initialization |
+| `state.js` | Application state and helper functions |
+| `dom.js` | Centralized DOM element references |
+| `api.js` | API calls (load, save, share, Scryfall) |
+| `router.js` | URL parsing and history management |
+| `deckList.js` | Deck list rendering and switching |
+| `cardDisplay.js` | Card preview and connection line |
+| `autocomplete.js` | Card name autocomplete functionality |
+| `resizer.js` | Panel resize functionality |
+| `landing.js` | Landing page setup |
+| `mobile.js` | Mobile-specific UI handlers |
+
+#### State Module (`js/state.js`)
+
+**Core State Variables** (exported):
 - `data`: Array of deck objects `{id: string, text: string}` (plain strings in share mode)
 - `link_cache`: Object caching Scryfall card lookups
 - `selectedDeck`: Index of currently active deck
 - `isMobile`: Boolean tracking viewport width (≤768px)
 - `isRenderMode`: Boolean for mobile render/edit mode toggle
-- `isShareMode`: Boolean for read-only share view
-- `shareId`: UUID from share URL path
-- `currentUser`: Username parsed from URL
-- `initialDeckId`: Deck ID parsed from URL for deep linking
+- `isShareMode`: Boolean for read-only share view (const)
+- `shareId`: UUID from share URL path (const)
+- `currentUser`: Username parsed from URL (const)
+- `initialDeckId`: Deck ID parsed from URL for deep linking (const)
+- `isLandingPage`: Boolean for landing page detection (const)
 
 **Autocomplete State Variables**:
 - `autocompleteResults`: Array of current search results from Scryfall
-- `autocompleteSelectedIndex`: Explicitly selected index via arrow keys (-1 = none, user must navigate to select)
+- `autocompleteSelectedIndex`: Explicitly selected index via arrow keys (-1 = none)
 - `autocompleteTimer`: Debounce timer for API calls (300ms delay)
 - `autocompleteVisible`: Boolean for dropdown visibility state
 - `lastCursorPosition`: Tracks cursor position to detect movement
 - `autocompleteAbortController`: AbortController for canceling pending API requests
 - `lastEditorValue`: Tracks editor content to only trigger autocomplete on actual text changes
 
-**Key Functions**:
+**State Setters**: Each mutable state variable has a corresponding setter function (e.g., `setData()`, `setSelectedDeck()`)
 
-- `load()` (script.js:58-84): Fetches user/share data from API on startup
-- `save()` (script.js:86-99): Debounced save to API (500ms delay)
-- `getDeckText(index)` (script.js:46-51): Helper to get deck text (handles both modes)
-- `getDeckId(index)` (script.js:54-56): Helper to get deck UUID
-- `updateUrl(deckId)` (script.js:101-109): Updates browser URL via history.pushState
-- `shareDeck()` (script.js:136-158): Creates share link via API
-- `copyShareUrl()` (script.js:160-167): Copies share URL to clipboard
-- `setDeckList()` (script.js:169-265): Renders deck selection with share button
-- `display_card()` (script.js:267-302): Shows card images with mobile tap-to-open support
-- `updateData()` (script.js:304-392): Parses deck text and displays card links
-- `get_card()` (script.js:394-406): Fetches card data from Scryfall API
-- `switchDeck()` (script.js:416-432): Changes active deck and updates URL
-- `updateRenderToggleIcon()` (script.js:458-470): Updates mobile toggle button icon
+**Helper Functions**:
+- `getDeckText(index)`: Helper to get deck text (handles both modes)
+- `getDeckId(index)`: Helper to get deck UUID
 
-**Autocomplete Functions**:
-- `getCurrentLineInfo()` (script.js:544-566): Returns current line text, position, and cursor info
-- `parseCardNameFromLine(lineText)` (script.js:568-590): Extracts card name, stripping quantity prefix
-- `searchScryfall(query)` (script.js:592-626): Fetches card search results from Scryfall API
-- `calculateDropdownPosition()` (script.js:628-660): Calculates dropdown position based on cursor
-- `showAutocomplete(results)` (script.js:662-710): Displays autocomplete dropdown with results
-- `hideAutocomplete()` (script.js:712-731): Hides dropdown and cancels pending requests
-- `updateAutocompleteSelection(index)` (script.js:733-745): Updates visual selection in dropdown
-- `selectAutocomplete(index)` (script.js:747-799): Inserts selected card name into editor
-- `triggerAutocomplete()` (script.js:801-831): Debounced trigger for autocomplete search
-- `handleAutocompleteKeydown(e)` (script.js:833-881): Handles keyboard navigation (Tab, arrows, Enter, Escape)
-- `checkCursorMovement()` (script.js:883-903): Detects cursor movement to hide autocomplete
+#### API Module (`js/api.js`)
+
+- `load()`: Fetches user/share data from API on startup
+- `save()`: Debounced save to API (500ms delay)
+- `shareDeck()`: Creates share link via API, returns URL
+- `getCard(cardName)`: Fetches card data from Scryfall API
+
+#### Router Module (`js/router.js`)
+
+- `updateUrl(deckId)`: Updates browser URL via history.pushState
+- `initRouter()`: Sets up popstate listener for back/forward
+- `setInitialUrlState()`: Sets initial history state after load
+
+#### Deck List Module (`js/deckList.js`)
+
+- `setDeckList()`: Renders deck selection with share button
+- `switchDeck(index)`: Returns function that changes active deck
+- `shareDeck()`: Shows share modal with generated URL
+- `copyShareUrl()`: Copies share URL to clipboard
+
+#### Card Display Module (`js/cardDisplay.js`)
+
+- `displayCard(cardData)`: Returns function that shows card images
+- `showConnectionLine(cardElement)`: Shows line from card to display
+- `hideConnectionLine()`: Hides connection line and card preview
+- `updateData(newData)`: Parses deck text and displays card links (debounced)
+
+#### Autocomplete Module (`js/autocomplete.js`)
+
+- `getCurrentLineInfo()`: Returns current line text, position, and cursor info
+- `parseCardNameFromLine(lineText)`: Extracts card name, stripping quantity prefix
+- `searchScryfall(query)`: Fetches card search results from Scryfall API
+- `calculateDropdownPosition()`: Calculates dropdown position based on cursor
+- `showAutocomplete(results)`: Displays autocomplete dropdown with results
+- `hideAutocomplete()`: Hides dropdown and cancels pending requests
+- `updateAutocompleteSelection(index)`: Updates visual selection in dropdown
+- `selectAutocomplete(index)`: Inserts selected card name into editor
+- `triggerAutocomplete()`: Debounced trigger for autocomplete search
+- `handleAutocompleteKeydown(e)`: Handles keyboard navigation
+- `checkCursorMovement()`: Detects cursor movement to hide autocomplete
+- `initAutocomplete()`: Sets up all autocomplete event listeners
+
+#### Resizer Module (`js/resizer.js`)
+
+- `loadPanelSizes()`: Loads saved panel sizes from localStorage
+- `savePanelSizes()`: Saves panel sizes to localStorage
+- `initResizers()`: Sets up resize handlers for all panels
+
+#### Landing Module (`js/landing.js`)
+
+- `handleLogoClick(e)`: Sets flag for intentional navigation home
+- `setupLandingPage()`: Shows landing page or redirects returning users
+- `initLogoHandlers()`: Sets up logo click handlers
+
+#### Mobile Module (`js/mobile.js`)
+
+- `closeMobileMenu()`: Closes mobile dropdown menu
+- `updateRenderToggleIcon()`: Updates mobile toggle button icon
+- `initMobileHandlers()`: Sets up all mobile-specific handlers
 
 **URL Routing**:
 - Parses `/{user}` and `/{user}/{deckId}` patterns
@@ -204,59 +291,79 @@ The frontend manages deck editing, card lookups, URL routing, and UI interaction
 - Hidden by default, shown via `.visible` class
 
 **Asset Paths**:
-- CSS and JS use absolute paths (`/styles.css`, `/script.js`)
+- CSS uses absolute path (`/styles/main.css`)
+- JS uses absolute path with module type (`/js/main.js`)
 - Required for nested routes like `/share/{uuid}` and `/{user}/{deckId}`
 
-### 4. Styling (`styles.css`)
+### 4. Styling (`styles/` modules)
 
-**CSS Custom Properties** (styles.css:4-24):
-- `--bg-primary`: Main background (#1e1e24)
-- `--bg-secondary`: Sidebar/panels (#2a2a32)
-- `--bg-tertiary`: Elevated elements (#33333b)
-- `--accent-primary`: Purple accent (#7c5cbf)
-- `--accent-hover`: Hover state (#9370db)
-- `--danger`: Delete/error states (#c45c5c)
-- `--transition-fast/normal`: Animation timing
-- `--radius-sm/md/lg/full`: Border radius values
-- `--shadow-sm/md/lg`: Box shadow values
+The CSS is organized into focused modules using CSS `@import`. Each module has a single responsibility.
 
-**Design Characteristics**:
-- Modern dark theme with CSS variables
+#### CSS Module Overview
+
+| Module | Purpose |
+|--------|---------|
+| `main.css` | Entry point, imports all modules |
+| `variables.css` | CSS custom properties (design tokens) |
+| `base.css` | Reset, typography, scrollbars |
+| `layout.css` | Grid overlay, app container, connection line |
+| `header.css` | Desktop and mobile headers |
+| `sidebar.css` | Sidebar, deck list, deck items |
+| `buttons.css` | All button styles |
+| `editor.css` | Editor textarea and wrapper |
+| `card-links.css` | Stacked card design |
+| `card-display.css` | Card preview area |
+| `modal.css` | Share modal |
+| `autocomplete.css` | Autocomplete dropdown |
+| `landing.css` | Landing page |
+| `resize.css` | Resize handles |
+| `share-mode.css` | Read-only view overrides |
+| `responsive.css` | All media queries |
+
+#### CSS Custom Properties (`styles/variables.css`)
+
+- `--black`, `--near-black`, `--dark-gray`, `--gray`, `--light-gray`, `--white`: Color scale
+- `--orange`, `--cyan`, `--green`, `--yellow`, `--danger`: Accent colors
+- `--grid-color`, `--grid-border`: Blueprint grid styling
+- `--transition-fast`, `--transition-normal`: Animation timing
+- `--radius-sm`, `--radius-md`, `--radius-lg`: Border radius values
+- `--shadow-sm`, `--shadow-md`, `--shadow-lg`: Box shadow values
+- `--header-height`: Header height (52px)
+
+#### Design Characteristics
+
+- Neo-brutalist dark theme with CSS variables
 - Flexbox-based responsive layout
+- Blueprint grid overlay effect
 - Smooth transitions and subtle shadows
 - Custom WebKit scrollbar styling
-- Gradient background on card display area
-- System font stack for better performance
+- JetBrains Mono and Inter font stack
 
-**Share Button Styling** (styles.css:591-609):
-- Purple accent outline style
-- Matches theme with hover states
+#### Key Component Styles
 
-**Share Modal Styling** (styles.css:611-706):
+**Share Modal** (`styles/modal.css`):
 - Dark overlay background
 - Centered modal with shadow
 - Monospace font for URL input
 - Copy button with accent color
 
-**Share Mode Styling** (styles.css:708-765):
+**Share Mode** (`styles/share-mode.css`):
 - Hides sidebar, header, editor
 - Full-width card links panel
-- Mobile-responsive adjustments
 
-**Autocomplete Styling** (styles.css:1475-1588):
-- `.editor-wrapper`: Relative positioning container for dropdown
+**Autocomplete** (`styles/autocomplete.css`):
 - `.autocomplete-container`: Absolute positioned dropdown with cyan border
 - `.autocomplete-list`: Scrollable list (max-height 200px, ~5 visible items)
 - `.autocomplete-item`: Individual suggestions with hover/selected states
 - `.autocomplete-item-name`: Card name display
 - `.autocomplete-item-mana`: Mana cost display (right-aligned)
-- Mobile adjustments for smaller screens
 
-**Responsive Breakpoints**:
+#### Responsive Breakpoints (`styles/responsive.css`)
+
 - **Mobile** (≤768px): Single column, header with dropdown, floating render toggle
-- **Tablet** (769-1024px): Narrower sidebar (180px), adjusted proportions
-- **Desktop** (>1024px): Full 4-column layout with collapsible sidebar (220px)
-- **Large Desktop** (≥1400px): Wider sidebar (260px), increased padding
+- **Tablet** (769-1024px): Narrower sidebar (200px), adjusted proportions
+- **Desktop** (>1024px): Full 4-column layout with collapsible sidebar (240px)
+- **Large Desktop** (≥1400px): Wider sidebar (280px), increased padding
 
 ### 5. Cloudflare Configuration (`wrangler.toml`)
 
@@ -413,6 +520,8 @@ This starts a local development server with hot reloading.
 ### Browser Compatibility
 
 - Modern browsers with ES6+ support required
+- Uses native ES modules (`<script type="module">`) - no build step required
+- Uses CSS `@import` for modular stylesheets
 - Uses Fetch API (no polyfills included)
 - Uses `crypto.randomUUID()` for deck IDs
 - Uses History API for URL management
@@ -594,6 +703,7 @@ My Burn Deck
 ## Repository History
 
 Recent commits show:
+- Modular ES modules refactor for JS and CSS (v1.3.0)
 - Scryfall search API autocomplete in editor (v1.2.0)
 - Deck sharing feature with live references
 - Deck UUIDs for bookmarkable URLs
