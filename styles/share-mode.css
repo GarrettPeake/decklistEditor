@@ -21,6 +21,10 @@ body.share-mode .render-toggle {
     display: none !important;
 }
 
+body.share-mode .editor-wrapper {
+    display: none;
+}
+
 body.share-mode .editor-textarea {
     display: none;
 }

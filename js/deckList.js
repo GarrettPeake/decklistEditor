@@ -19,11 +19,19 @@ export function setDeckList() {
     dom.decklist.innerHTML = "";
     dom.mobileDecklist.innerHTML = "";
 
+    // Create header container for add button (stays fixed)
+    const headerContainer = document.createElement("div");
+    headerContainer.classList.add("deck-list-header");
+
+    // Create scrollable items container
+    const itemsContainer = document.createElement("div");
+    itemsContainer.classList.add("deck-list-items");
+
     // Create add deck button
     const addDeckButton = document.createElement("button");
     addDeckButton.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon"><path d="M12 5v14M5 12h14"/></svg><span>Add Deck</span>`;
     addDeckButton.classList.add("DeckButton", "add-deck-btn");
-    dom.decklist.appendChild(addDeckButton);
+    headerContainer.appendChild(addDeckButton);
     addDeckButton.onclick = () => {
         // Create new deck with UUID
         const newDeck = { id: crypto.randomUUID(), text: "" };
@@ -31,6 +39,10 @@ export function setDeckList() {
         switchDeck(0)();
         closeMobileMenu();
     };
+
+    // Add header and items containers to deck list
+    dom.decklist.appendChild(headerContainer);
+    dom.decklist.appendChild(itemsContainer);
 
     // Clone for mobile
     const mobileAddButton = addDeckButton.cloneNode(true);
@@ -92,7 +104,7 @@ export function setDeckList() {
         deckItem.appendChild(button);
         deckItem.appendChild(shareBtn);
         deckItem.appendChild(deleteBtn);
-        dom.decklist.appendChild(deckItem);
+        itemsContainer.appendChild(deckItem);
 
         // Clone for mobile
         const mobileItem = deckItem.cloneNode(true);

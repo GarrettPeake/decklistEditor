@@ -112,8 +112,21 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    overflow-y: auto;
+    overflow: hidden;
     transition: opacity var(--transition-fast);
+}
+
+.deck-list-header {
+    flex-shrink: 0;
+}
+
+.deck-list-items {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 /* ========================================

@@ -119,11 +119,28 @@ export function calculateDropdownPosition() {
     const textBeforeCursor = dom.editor.value.substring(0, lineInfo.cursorPos);
     const lineCount = textBeforeCursor.split('\n').length;
 
-    // Calculate position relative to editor wrapper
+    // Calculate position relative to editor wrapper (below the current line)
     const left = paddingLeft + textWidth;
-    const top = paddingTop + (lineCount * lineHeight) - dom.editor.scrollTop;
+    const topBelow = paddingTop + (lineCount * lineHeight) - dom.editor.scrollTop;
 
-    return { left, top };
+    // Check if dropdown would overflow below the viewport
+    const editorWrapper = dom.editor.parentElement;
+    const editorRect = editorWrapper.getBoundingClientRect();
+    const dropdownHeight = 200; // max-height from CSS
+    const cursorAbsoluteTop = editorRect.top + topBelow;
+    const dropdownBottom = cursorAbsoluteTop + dropdownHeight;
+    const viewportHeight = window.innerHeight;
+
+    // Position above if it would overflow below
+    const positionAbove = dropdownBottom > viewportHeight;
+
+    // Calculate bottom position for above placement
+    // Bottom is distance from the bottom of the wrapper to just above the current line
+    const wrapperHeight = editorWrapper.offsetHeight;
+    const cursorLineTop = paddingTop + ((lineCount - 1) * lineHeight) - dom.editor.scrollTop;
+    const bottomValue = wrapperHeight - cursorLineTop;
+
+    return { left, topBelow, bottomValue, positionAbove };
 }
 
 // Show autocomplete dropdown
@@ -173,7 +190,17 @@ export function showAutocomplete(results) {
     // Position the dropdown
     const position = calculateDropdownPosition();
     dom.autocompleteContainer.style.left = position.left + 'px';
-    dom.autocompleteContainer.style.top = position.top + 'px';
+
+    // Apply positioning (above or below cursor)
+    if (position.positionAbove) {
+        dom.autocompleteContainer.classList.add('position-above');
+        dom.autocompleteContainer.style.top = '';
+        dom.autocompleteContainer.style.bottom = position.bottomValue + 'px';
+    } else {
+        dom.autocompleteContainer.classList.remove('position-above');
+        dom.autocompleteContainer.style.bottom = '';
+        dom.autocompleteContainer.style.top = position.topBelow + 'px';
+    }
 
     // Show dropdown
     dom.autocompleteContainer.classList.add('visible');
@@ -183,6 +210,9 @@ export function showAutocomplete(results) {
 // Hide autocomplete dropdown and reset all state
 export function hideAutocomplete() {
     dom.autocompleteContainer.classList.remove('visible');
+    dom.autocompleteContainer.classList.remove('position-above');
+    dom.autocompleteContainer.style.top = '';
+    dom.autocompleteContainer.style.bottom = '';
     state.setAutocompleteVisible(false);
     state.setAutocompleteResults([]);
     state.setAutocompleteSelectedIndex(-1);
@@ -415,7 +445,16 @@ export function initAutocomplete() {
         if (state.autocompleteVisible) {
             const position = calculateDropdownPosition();
             dom.autocompleteContainer.style.left = position.left + 'px';
-            dom.autocompleteContainer.style.top = position.top + 'px';
+
+            if (position.positionAbove) {
+                dom.autocompleteContainer.classList.add('position-above');
+                dom.autocompleteContainer.style.top = '';
+                dom.autocompleteContainer.style.bottom = position.bottomValue + 'px';
+            } else {
+                dom.autocompleteContainer.classList.remove('position-above');
+                dom.autocompleteContainer.style.bottom = '';
+                dom.autocompleteContainer.style.top = position.topBelow + 'px';
+            }
         }
     });
 }
