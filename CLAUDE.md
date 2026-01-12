@@ -97,11 +97,12 @@ The frontend manages deck editing, card lookups, URL routing, and UI interaction
 
 **Autocomplete State Variables**:
 - `autocompleteResults`: Array of current search results from Scryfall
-- `autocompleteSelectedIndex`: Currently highlighted index (-1 = none)
+- `autocompleteSelectedIndex`: Currently highlighted index (0 = first item selected by default)
 - `autocompleteTimer`: Debounce timer for API calls (300ms delay)
 - `autocompleteVisible`: Boolean for dropdown visibility state
 - `lastCursorPosition`: Tracks cursor position to detect movement
 - `autocompleteAbortController`: AbortController for canceling pending API requests
+- `lastEditorValue`: Tracks editor content to only trigger autocomplete on actual text changes
 
 **Key Functions**:
 

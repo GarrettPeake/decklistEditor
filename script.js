@@ -7,11 +7,12 @@ var currentCardData = null;
 
 // Autocomplete state
 var autocompleteResults = [];       // Current search results from Scryfall
-var autocompleteSelectedIndex = -1; // Currently highlighted index (-1 = none)
+var autocompleteSelectedIndex = 0;  // Currently highlighted index (0 = first item)
 var autocompleteTimer = null;       // Debounce timer for API calls
 var autocompleteVisible = false;    // Dropdown visibility state
 var lastCursorPosition = -1;        // Track cursor position for hiding on movement
 var autocompleteAbortController = null; // AbortController for canceling pending requests
+var lastEditorValue = '';           // Track editor value to detect actual text changes
 
 // URL parsing
 var isShareMode = window.location.pathname.startsWith('/share/');
@@ -157,6 +158,7 @@ window.addEventListener('popstate', (e) => {
         if (deckIndex !== -1) {
             selectedDeck = deckIndex;
             editor.value = getDeckText(selectedDeck);
+            lastEditorValue = editor.value;
             editor.style.height = "";
             editor.style.height = editor.scrollHeight + "px";
             setDeckList();
@@ -165,6 +167,7 @@ window.addEventListener('popstate', (e) => {
     } else if (data.length > 0) {
         selectedDeck = 0;
         editor.value = getDeckText(0);
+        lastEditorValue = editor.value;
         editor.style.height = "";
         editor.style.height = editor.scrollHeight + "px";
         setDeckList();
@@ -667,13 +670,17 @@ function showAutocomplete(results) {
     }
 
     autocompleteResults = results;
-    autocompleteSelectedIndex = -1;
+    autocompleteSelectedIndex = 0; // Start with first item selected
 
     // Clear and populate list
     autocompleteList.innerHTML = '';
     results.forEach((result, index) => {
         const li = document.createElement('li');
         li.classList.add('autocomplete-item');
+        // Select first item by default
+        if (index === 0) {
+            li.classList.add('selected');
+        }
         li.dataset.index = index;
 
         const nameSpan = document.createElement('span');
@@ -777,6 +784,7 @@ function selectAutocomplete(index) {
     const beforeLine = editor.value.substring(0, lineInfo.lineStart);
     const afterLine = editor.value.substring(lineInfo.lineEnd);
     editor.value = beforeLine + newLineText + afterLine;
+    lastEditorValue = editor.value;
 
     // Set cursor to end of inserted text
     const newCursorPos = lineInfo.lineStart + newLineText.length;
@@ -909,8 +917,9 @@ editor.oninput = (e) => {
     setDeckList();
     save();
 
-    // Trigger autocomplete (unless this was triggered by autocomplete selection)
-    if (!isShareMode) {
+    // Only trigger autocomplete if text content actually changed (not just cursor movement)
+    if (!isShareMode && editor.value !== lastEditorValue) {
+        lastEditorValue = editor.value;
         triggerAutocomplete();
     }
 }
@@ -968,6 +977,7 @@ function switchDeck(index){
 
         if (!isShareMode) {
             editor.value = deckText;
+            lastEditorValue = editor.value;
             editor.style.height = "";
             editor.style.height = editor.scrollHeight + "px";
             updateUrl(deckId);
@@ -975,6 +985,7 @@ function switchDeck(index){
         setDeckList();
         updateData(deckText);
         save();
+        hideAutocomplete();
     }
 }
 
