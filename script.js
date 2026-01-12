@@ -7,7 +7,7 @@ var currentCardData = null;
 
 // Autocomplete state
 var autocompleteResults = [];       // Current search results from Scryfall
-var autocompleteSelectedIndex = 0;  // Currently highlighted index (0 = first item)
+var autocompleteSelectedIndex = -1; // Explicitly selected index (-1 = none, Enter adds newline)
 var autocompleteTimer = null;       // Debounce timer for API calls
 var autocompleteVisible = false;    // Dropdown visibility state
 var lastCursorPosition = -1;        // Track cursor position for hiding on movement
@@ -670,14 +670,15 @@ function showAutocomplete(results) {
     }
 
     autocompleteResults = results;
-    autocompleteSelectedIndex = 0; // Start with first item selected
+    autocompleteSelectedIndex = -1; // -1 means no explicit selection (Enter adds newline)
 
     // Clear and populate list
     autocompleteList.innerHTML = '';
     results.forEach((result, index) => {
         const li = document.createElement('li');
         li.classList.add('autocomplete-item');
-        // Select first item by default
+        // Visually highlight first item, but don't set selectedIndex
+        // This way Tab selects it, but Enter still adds newline
         if (index === 0) {
             li.classList.add('selected');
         }
@@ -721,7 +722,7 @@ function hideAutocomplete() {
     autocompleteContainer.classList.remove('visible');
     autocompleteVisible = false;
     autocompleteResults = [];
-    autocompleteSelectedIndex = 0; // Reset to 0 so first item is selected when shown again
+    autocompleteSelectedIndex = -1; // Reset to -1 (no explicit selection)
     autocompleteList.innerHTML = '';
 
     // Cancel any pending search
