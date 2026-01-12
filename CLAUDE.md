@@ -6,7 +6,7 @@ Decklist Editor is a web-based application for creating, managing, and organizin
 
 **Author**: Garrett Peake
 **License**: MIT
-**Version**: 1.3.0
+**Version**: 1.3.1
 
 ## Architecture Overview
 
@@ -192,7 +192,7 @@ The frontend is organized into ES modules for maintainability. Each module has a
 - `getCurrentLineInfo()`: Returns current line text, position, and cursor info
 - `parseCardNameFromLine(lineText)`: Extracts card name, stripping quantity prefix
 - `searchScryfall(query)`: Fetches card search results from Scryfall API
-- `calculateDropdownPosition()`: Calculates dropdown position based on cursor
+- `calculateDropdownPosition()`: Calculates dropdown position based on cursor; automatically positions above cursor when near viewport bottom
 - `showAutocomplete(results)`: Displays autocomplete dropdown with results
 - `hideAutocomplete()`: Hides dropdown and cancels pending requests
 - `updateAutocompleteSelection(index)`: Updates visual selection in dropdown
@@ -308,7 +308,7 @@ The CSS is organized into focused modules using CSS `@import`. Each module has a
 | `base.css` | Reset, typography, scrollbars |
 | `layout.css` | Grid overlay, app container, connection line |
 | `header.css` | Desktop and mobile headers |
-| `sidebar.css` | Sidebar, deck list, deck items |
+| `sidebar.css` | Sidebar, deck list (with scrollable items container), deck items |
 | `buttons.css` | All button styles |
 | `editor.css` | Editor textarea and wrapper |
 | `card-links.css` | Stacked card design |
@@ -348,15 +348,18 @@ The CSS is organized into focused modules using CSS `@import`. Each module has a
 - Copy button with accent color
 
 **Share Mode** (`styles/share-mode.css`):
-- Hides sidebar, header, editor
+- Hides sidebar, header, editor wrapper
 - Full-width card links panel
 
 **Autocomplete** (`styles/autocomplete.css`):
 - `.autocomplete-container`: Absolute positioned dropdown with cyan border
 - `.autocomplete-list`: Scrollable list (max-height 200px, ~5 visible items)
 - `.autocomplete-item`: Individual suggestions with hover/selected states
-- `.autocomplete-item-name`: Card name display
-- `.autocomplete-item-mana`: Mana cost display (right-aligned)
+- `.position-above`: Modifier class for positioning dropdown above cursor when near viewport bottom
+
+**Sidebar** (`styles/sidebar.css`):
+- `.deck-list-header`: Fixed container for Add Deck button
+- `.deck-list-items`: Scrollable container for deck items
 
 #### Responsive Breakpoints (`styles/responsive.css`)
 
@@ -703,6 +706,7 @@ My Burn Deck
 ## Repository History
 
 Recent commits show:
+- Overflow fixes: sidebar deck list scrolling, autocomplete position-above, share mode layout (v1.3.1)
 - Modular ES modules refactor for JS and CSS (v1.3.0)
 - Scryfall search API autocomplete in editor (v1.2.0)
 - Deck sharing feature with live references
