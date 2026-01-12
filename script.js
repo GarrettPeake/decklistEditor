@@ -716,12 +716,12 @@ function showAutocomplete(results) {
     autocompleteVisible = true;
 }
 
-// Hide autocomplete dropdown
+// Hide autocomplete dropdown and reset all state
 function hideAutocomplete() {
     autocompleteContainer.classList.remove('visible');
     autocompleteVisible = false;
     autocompleteResults = [];
-    autocompleteSelectedIndex = -1;
+    autocompleteSelectedIndex = 0; // Reset to 0 so first item is selected when shown again
     autocompleteList.innerHTML = '';
 
     // Cancel any pending search
