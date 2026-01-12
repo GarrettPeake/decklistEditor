@@ -1,42 +1,4 @@
 /* ========================================
-   Sidebar Expand Button
-   ======================================== */
-.sidebar-expand {
-    display: none;
-    position: fixed;
-    left: 0;
-    top: calc(var(--header-height) + 50%);
-    transform: translateY(-50%);
-    width: 32px;
-    height: 56px;
-    background-color: var(--near-black);
-    border: 2px solid var(--grid-border);
-    border-left: none;
-    color: var(--light-gray);
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-    z-index: 50;
-    transition: all var(--transition-fast);
-    padding: 0;
-}
-
-.sidebar-expand.visible {
-    display: flex;
-}
-
-.sidebar-expand:hover {
-    background-color: var(--gray);
-    border-color: var(--cyan);
-    color: var(--cyan);
-}
-
-.expand-icon {
-    width: 16px;
-    height: 16px;
-}
-
-/* ========================================
    Sidebar (Desktop)
    ======================================== */
 .sidebar {
@@ -51,7 +13,6 @@
     flex-direction: column;
     transition: width var(--transition-normal), min-width var(--transition-normal);
     flex-shrink: 0;
-    position: relative;
     z-index: 10;
 }
 
@@ -67,45 +28,6 @@
     pointer-events: none;
 }
 
-.sidebar.collapsed .sidebar-resizer {
-    display: none;
-}
-
-.sidebar-toggle {
-    position: absolute;
-    top: 50%;
-    right: -18px;
-    transform: translateY(-50%);
-    width: 36px;
-    height: 56px;
-    background-color: var(--near-black);
-    border: 2px solid var(--grid-border);
-    color: var(--light-gray);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    transition: all var(--transition-fast);
-    padding: 0;
-}
-
-.sidebar-toggle:hover {
-    background-color: var(--gray);
-    border-color: var(--cyan);
-    color: var(--cyan);
-}
-
-.toggle-icon {
-    width: 16px;
-    height: 16px;
-    transition: transform var(--transition-normal);
-}
-
-.sidebar.collapsed .toggle-icon {
-    transform: rotate(180deg);
-}
-
 .deck-list {
     flex: 1;
     padding: 16px 12px;
@@ -118,6 +40,41 @@
 
 .deck-list-header {
     flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+}
+
+.deck-list-header .add-deck-btn {
+    flex: 1;
+}
+
+/* Sidebar Toggle Button (inline with Add Deck) */
+.sidebar-toggle-btn {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--dark-gray);
+    border: 2px solid var(--gray);
+    color: var(--light-gray);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+    background-color: var(--gray);
+    border-color: var(--cyan);
+    color: var(--cyan);
+    transform: none;
+}
+
+.sidebar-toggle-btn .toggle-icon {
+    width: 18px;
+    height: 18px;
 }
 
 .deck-list-items {

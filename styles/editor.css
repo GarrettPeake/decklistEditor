@@ -14,7 +14,7 @@
 .editor-wrapper {
     position: relative;
     flex: 1;
-    min-width: 45%;
+    min-width: 0;
     display: flex;
     flex-direction: column;
 }
@@ -26,7 +26,7 @@
 
 .editor-textarea {
     flex: 1;
-    min-width: 45%;
+    min-width: 0;
     padding: 24px;
     resize: none;
     border: none;

@@ -64,25 +64,15 @@
             <div id="mobileDecks" class="mobile-decks-list"></div>
         </div>
 
-        <!-- Sidebar Expand Button (visible when sidebar collapsed) -->
-        <button id="sidebarExpand" class="sidebar-expand" aria-label="Expand sidebar">
-            <svg class="expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 18l6-6-6-6"/>
-            </svg>
-        </button>
-
         <!-- App Container (sidebar + main content) -->
         <div id="appContainer" class="app-container">
             <!-- Desktop Sidebar -->
             <aside id="sidebar" class="sidebar">
-                <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle sidebar">
-                    <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M15 18l-6-6 6-6"/>
-                    </svg>
-                </button>
                 <div id="decks" class="scrollable deck-list"></div>
                 <!-- Resize handle on sidebar right edge -->
-                <div id="sidebarResizer" class="resize-handle sidebar-resizer"></div>
+                <div id="sidebarResizer" class="resize-handle sidebar-resizer">
+                    <span class="resize-dots"></span>
+                </div>
             </aside>
 
             <!-- Main Content Area -->
@@ -95,12 +85,16 @@
                             <ul id="autocompleteList" class="autocomplete-list"></ul>
                         </div>
                     </div>
-                    <!-- Resize handle for editor/card-links -->
-                    <div id="editorResizer" class="resize-handle editor-resizer"></div>
                     <span id="hovers" class="card-links"></span>
                 </div>
-                <!-- Resize handle for card-display -->
-                <div id="displayResizer" class="resize-handle display-resizer"></div>
+                <!-- Resize handle for card-display (left edge) -->
+                <div id="displayResizer" class="resize-handle display-resizer">
+                    <span class="resize-dots"></span>
+                </div>
+                <!-- Mobile render mode resize handle -->
+                <div id="mobileRenderResizer" class="resize-handle mobile-render-resizer">
+                    <span class="resize-dots horizontal"></span>
+                </div>
                 <div id="display" class="card-display">
                     <div class="empty-state" id="emptyState">
                         <div class="empty-state-icon">⬡</div>

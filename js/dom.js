@@ -19,8 +19,6 @@ export const connectionLine = document.getElementById("connectionLine");
 
 // Sidebar elements
 export const sidebar = document.getElementById("sidebar");
-export const sidebarToggle = document.getElementById("sidebarToggle");
-export const sidebarExpand = document.getElementById("sidebarExpand");
 
 // Mobile elements
 export const mobileMenuBtn = document.getElementById("mobileMenuBtn");
@@ -49,7 +47,6 @@ export const autocompleteList = document.getElementById("autocompleteList");
 
 // Resize elements
 export const sidebarResizer = document.getElementById("sidebarResizer");
-export const editorResizer = document.getElementById("editorResizer");
 export const displayResizer = document.getElementById("displayResizer");
 export const editorContainer = document.getElementById("syncScroll");
 export const mainContent = document.getElementById("mainContent");
