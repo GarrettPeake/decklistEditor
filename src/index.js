@@ -109,8 +109,37 @@ export default {
             // Optionally delete old key (commented out for safety during transition)
             // await env.DECKLISTEDITOR.delete(user);
           } else {
-            // New user - initialize with empty array
-            body = "[]";
+            // New user - initialize with a sample deck
+            const sampleDeckText = `Sample Deck
+#Creatures
+4x Lightning Bolt
+4x Llanowar Elves
+2x Serra Angel
+2x Shivan Dragon
+
+#Lands
+4x Forest
+4x Mountain
+4x Plains
+4x Island
+4x Swamp
+
+#Artifacts
+2x Sol Ring
+2x Lightning Greaves
+
+#Enchantments
+2x Oblivion Ring
+2x Rancor
+
+#Spells
+4x Counterspell
+4x Giant Growth`;
+            const sampleDeck = {
+              id: crypto.randomUUID(),
+              text: sampleDeckText
+            };
+            body = JSON.stringify([sampleDeck]);
             await env.DECKLISTEDITOR.put(`user:${user}`, body);
           }
         }

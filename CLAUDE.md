@@ -6,7 +6,7 @@ Decklist Editor is a web-based application for creating, managing, and organizin
 
 **Author**: Garrett Peake
 **License**: MIT
-**Version**: 1.4.0
+**Version**: 1.5.0
 
 ## Architecture Overview
 
@@ -111,6 +111,11 @@ The Worker serves as the backend API and static asset server.
 - Auto-assigns UUIDs to migrated decks
 - Saves migrated data with new prefix
 
+**New User Initialization** (src/index.js:111-133):
+- New users are initialized with a "Sample Deck" containing example cards
+- Sample deck includes sections: Creatures, Lands, Artifacts, Enchantments, Spells
+- Helps new users understand the deck format and see the app's features immediately
+
 ### 2. Frontend Application (`js/` modules)
 
 The frontend is organized into ES modules for maintainability. Each module has a single responsibility.
@@ -176,7 +181,7 @@ The frontend is organized into ES modules for maintainability. Each module has a
 #### Deck List Module (`js/deckList.js`)
 
 - `setDeckList()`: Renders deck selection with share button
-- `switchDeck(index)`: Returns function that changes active deck
+- `switchDeck(index)`: Returns function that changes active deck; handles empty decks state by disabling editor and showing "Add a new deck to start editing" message
 - `shareDeck()`: Shows share modal with generated URL
 - `copyShareUrl()`: Copies share URL to clipboard
 
@@ -470,6 +475,8 @@ id = "bb576df04a11477f935a3b59ae24ba18"
 - Delete decks with confirmation prompt
 - Auto-save every 500ms after editing
 - Bookmarkable URLs for each deck (`/{user}/{deckId}`)
+- New users start with a sample deck showing all features
+- Empty state: editor disabled with "Add a new deck to start editing" message when all decks are deleted
 
 ### Deck Sharing
 - Generate shareable read-only links
@@ -725,6 +732,7 @@ My Burn Deck
 ## Repository History
 
 Recent commits show:
+- New user onboarding with sample deck, empty decks state handling with disabled editor (v1.5.0)
 - Improved resize handles with visual dot indicators, sidebar/display px-based resizing, mobile render resizer (v1.4.0)
 - Overflow fixes: sidebar deck list scrolling, autocomplete position-above, share mode layout (v1.3.1)
 - Modular ES modules refactor for JS and CSS (v1.3.0)

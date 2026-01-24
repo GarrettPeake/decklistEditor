@@ -150,6 +150,31 @@ export function setDeckList() {
 export function switchDeck(index) {
     return () => {
         state.setSelectedDeck(index);
+
+        // Handle empty decks state
+        if (state.data.length === 0) {
+            if (!state.isShareMode) {
+                dom.editor.value = "";
+                dom.editor.disabled = true;
+                dom.editor.placeholder = "Add a new deck to start editing";
+                dom.editor.classList.add("editor-disabled");
+                state.setLastEditorValue("");
+                updateUrl(null);
+            }
+            setDeckList();
+            updateData("");
+            save();
+            hideAutocomplete();
+            return;
+        }
+
+        // Re-enable editor if it was disabled
+        if (!state.isShareMode && dom.editor.disabled) {
+            dom.editor.disabled = false;
+            dom.editor.placeholder = "Start typing here to create a new deck. The first line is the title\n\nCard links will appear to the right as you type. Click a link to open the card's scryfall page or just hover over it to see the card\n\nYou can add section headers like #header and card quantities like '4x Rat'";
+            dom.editor.classList.remove("editor-disabled");
+        }
+
         const deckText = state.getDeckText(state.selectedDeck);
         const deckId = state.getDeckId(state.selectedDeck);
 

@@ -45,3 +45,14 @@
     color: var(--gray);
     font-family: 'JetBrains Mono', monospace;
 }
+
+.editor-textarea.editor-disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.editor-textarea.editor-disabled::placeholder {
+    color: var(--orange);
+    text-align: center;
+    padding-top: 40%;
+}
