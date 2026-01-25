@@ -7,6 +7,14 @@ import { loadPanelSizes } from './resizer.js';
 
 let saveTimer;
 
+// Get auth headers if authenticated
+function getAuthHeaders() {
+    if (state.authToken) {
+        return { 'Authorization': `Bearer ${state.authToken}` };
+    }
+    return {};
+}
+
 // Load data from API
 export async function load() {
     if (state.isShareMode) {
@@ -20,28 +28,43 @@ export async function load() {
         }
     } else if (state.currentUser) {
         // Load user decks (returns array of {id, text} objects)
-        await fetch(`/api/${state.currentUser}`)
-            .then(e => e.json())
-            .then(js => {
-                state.setData(js);
-            });
+        const response = await fetch(`/api/${state.currentUser}`, {
+            headers: getAuthHeaders()
+        });
 
-        // Find initial deck by ID if specified in URL
-        if (state.initialDeckId && state.data.length > 0) {
-            const deckIndex = state.data.findIndex(d => d.id === state.initialDeckId);
-            if (deckIndex !== -1) {
-                state.setSelectedDeck(deckIndex);
+        if (response.status === 401) {
+            // Protected decklist - need to login
+            const result = await response.json();
+            if (result.protected) {
+                // Redirect to landing page with redirect param
+                window.location.href = `/?redirect=${state.currentUser}`;
+                return { authRequired: true };
             }
         }
 
-        // Save user ID to localStorage
-        localStorage.setItem("decklister_user_id", state.currentUser);
+        if (response.ok) {
+            const js = await response.json();
+            state.setData(js);
+
+            // Find initial deck by ID if specified in URL
+            if (state.initialDeckId && state.data.length > 0) {
+                const deckIndex = state.data.findIndex(d => d.id === state.initialDeckId);
+                if (deckIndex !== -1) {
+                    state.setSelectedDeck(deckIndex);
+                }
+            }
+
+            // Save user ID to localStorage
+            localStorage.setItem("decklister_user_id", state.currentUser);
+        }
     }
 
     state.setLinkCache(JSON.parse(localStorage.getItem("link_cache")) || {});
 
     // Load saved panel sizes
     loadPanelSizes();
+
+    return { authRequired: false };
 }
 
 // Save data to API (debounced)
@@ -53,7 +76,8 @@ export async function save() {
     saveTimer = setTimeout(() => {
         fetch(`/api/${state.currentUser}`, {
             method: "put",
-            body: JSON.stringify(state.data)
+            body: JSON.stringify(state.data),
+            headers: getAuthHeaders()
         });
     }, 500);
 
@@ -97,4 +121,55 @@ export async function getCard(cardName) {
 
     state.link_cache[cardName] = cardData;
     return cardData;
+}
+
+// ========================================
+// Auth API Functions
+// ========================================
+
+// Register a new account
+export async function register(username, password, uuid) {
+    const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, uuid })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.error || 'Registration failed');
+    }
+
+    // Store auth token and username
+    state.setAuthToken(result.token);
+    state.setCurrentUsername(result.username);
+
+    return result;
+}
+
+// Login to existing account
+export async function login(username, password) {
+    const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.error || 'Login failed');
+    }
+
+    // Store auth token and username
+    state.setAuthToken(result.token);
+    state.setCurrentUsername(result.username);
+
+    return result;
+}
+
+// Logout
+export function logout() {
+    state.clearAuth();
 }

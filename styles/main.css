@@ -41,6 +41,9 @@
 /* Resize handles */
 @import url('./resize.css');
 
+/* Auth modal and buttons */
+@import url('./auth.css');
+
 /* Share mode overrides */
 @import url('./share-mode.css');
 

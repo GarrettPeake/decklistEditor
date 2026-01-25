@@ -30,7 +30,10 @@
             <div class="landing-content">
                 <h1 class="landing-title">Decklister</h1>
                 <p class="landing-subtitle">Create and manage your Magic: The Gathering decklists with ease</p>
-                <button id="getStartedBtn" class="landing-cta">Get Started</button>
+                <div class="landing-buttons">
+                    <button id="getStartedBtn" class="landing-cta">Get Started</button>
+                    <button id="landingLoginBtn" class="landing-login-btn">Login</button>
+                </div>
             </div>
         </div>
 
@@ -44,6 +47,39 @@
                     <path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <span>Bookmark this page to save your decks!</span>
+            </div>
+            <div class="header-auth">
+                <span id="usernameDisplay" class="username-display" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </span>
+                <button id="createAccountBtn" class="auth-btn primary" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <line x1="19" y1="8" x2="19" y2="14"/>
+                        <line x1="22" y1="11" x2="16" y2="11"/>
+                    </svg>
+                    Create Account
+                </button>
+                <button id="loginBtn" class="auth-btn" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                        <polyline points="10 17 15 12 10 7"/>
+                        <line x1="15" y1="12" x2="3" y2="12"/>
+                    </svg>
+                    Login
+                </button>
+                <button id="logoutBtn" class="auth-btn" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Logout
+                </button>
             </div>
         </header>
 
@@ -62,6 +98,12 @@
         <!-- Mobile Deck Dropdown -->
         <div id="mobileDropdown" class="mobile-dropdown">
             <div id="mobileDecks" class="mobile-decks-list"></div>
+            <div class="mobile-auth-section">
+                <div id="mobileUsernameDisplay" class="mobile-username-display" style="display: none;"></div>
+                <button id="mobileCreateAccountBtn" class="mobile-auth-btn primary" style="display: none;">Create Account</button>
+                <button id="mobileLoginBtn" class="mobile-auth-btn" style="display: none;">Login</button>
+                <button id="mobileLogoutBtn" class="mobile-auth-btn" style="display: none;">Logout</button>
+            </div>
         </div>
 
         <!-- App Container (sidebar + main content) -->
@@ -138,6 +180,29 @@
                 <div class="share-url-container">
                     <input type="text" id="shareUrl" class="share-url-input" readonly>
                     <button id="copyShareBtn" class="copy-share-btn">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Modal -->
+        <div id="authModal" class="auth-modal" data-mode="login">
+            <div class="auth-modal-content">
+                <button id="authModalClose" class="auth-modal-close" aria-label="Close modal">&times;</button>
+                <h2 id="authModalTitle">Login</h2>
+                <div id="authError" class="auth-error"></div>
+                <form id="authForm" class="auth-form">
+                    <div class="auth-input-group">
+                        <label for="authUsername">Username</label>
+                        <input type="text" id="authUsername" class="auth-input" placeholder="Enter username" autocomplete="username" required>
+                    </div>
+                    <div class="auth-input-group">
+                        <label for="authPassword">Password</label>
+                        <input type="password" id="authPassword" class="auth-input" placeholder="Enter password" autocomplete="current-password" required>
+                    </div>
+                    <button type="submit" id="authSubmitBtn" class="auth-submit-btn">Login</button>
+                </form>
+                <div id="authToggleText" class="auth-toggle">
+                    Need an account? <a href="#" class="auth-toggle-link">Create one</a>
                 </div>
             </div>
         </div>

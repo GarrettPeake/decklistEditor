@@ -1,0 +1,301 @@
+/* ========================================
+   Auth Modal & Buttons
+   ======================================== */
+
+/* Auth Modal (similar to share modal) */
+.auth-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-modal.open {
+    display: flex;
+}
+
+.auth-modal-content {
+    background-color: var(--near-black);
+    border: 2px solid var(--grid-border);
+    padding: 32px;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+    box-shadow: var(--shadow-lg);
+}
+
+.auth-modal-content h2 {
+    margin: 0 0 24px 0;
+    font-size: 1.5rem;
+    color: var(--white);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.auth-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 2px solid var(--gray);
+    color: var(--light-gray);
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-modal-close:hover {
+    background-color: var(--danger);
+    border-color: var(--danger);
+    color: var(--white);
+}
+
+/* Auth Form */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.auth-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.auth-input-group label {
+    color: var(--light-gray);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.auth-input {
+    padding: 12px 16px;
+    background-color: var(--dark-gray);
+    border: 2px solid var(--gray);
+    color: var(--white);
+    font-size: 1rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.auth-input:focus {
+    outline: 2px solid var(--cyan);
+    outline-offset: 0;
+    border-color: var(--cyan);
+}
+
+.auth-input::placeholder {
+    color: var(--gray);
+}
+
+/* Auth Submit Button */
+.auth-submit-btn {
+    padding: 14px 24px;
+    background-color: var(--orange);
+    border: 2px solid var(--orange);
+    color: var(--black);
+    font-weight: 700;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.auth-submit-btn:hover:not(:disabled) {
+    background-color: var(--cyan);
+    border-color: var(--cyan);
+}
+
+.auth-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Auth Error Message */
+.auth-error {
+    display: none;
+    padding: 12px;
+    background-color: rgba(239, 68, 68, 0.2);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+}
+
+/* Auth Toggle */
+.auth-toggle {
+    text-align: center;
+    color: var(--light-gray);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    margin-top: 8px;
+}
+
+.auth-toggle-link {
+    color: var(--cyan);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.auth-toggle-link:hover {
+    text-decoration: underline;
+}
+
+/* ========================================
+   Header Auth Buttons
+   ======================================== */
+
+.header-auth {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.auth-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 2px solid var(--gray);
+    color: var(--light-gray);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.auth-btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+}
+
+.auth-btn.primary {
+    background-color: var(--orange);
+    border-color: var(--orange);
+    color: var(--black);
+}
+
+.auth-btn.primary:hover {
+    background-color: var(--cyan);
+    border-color: var(--cyan);
+}
+
+.auth-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Username Display */
+.username-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.username-display svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ========================================
+   Mobile Auth Buttons (in dropdown)
+   ======================================== */
+
+.mobile-auth-section {
+    padding: 12px 16px;
+    border-top: 1px solid var(--gray);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mobile-auth-btn {
+    padding: 12px 16px;
+    background: transparent;
+    border: 2px solid var(--gray);
+    color: var(--light-gray);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.mobile-auth-btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+}
+
+.mobile-auth-btn.primary {
+    background-color: var(--orange);
+    border-color: var(--orange);
+    color: var(--black);
+}
+
+.mobile-auth-btn.primary:hover {
+    background-color: var(--cyan);
+    border-color: var(--cyan);
+}
+
+.mobile-username-display {
+    padding: 8px 16px;
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+/* ========================================
+   Landing Page Login Button
+   ======================================== */
+
+.landing-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.landing-login-btn {
+    padding: 16px 32px;
+    background: transparent;
+    border: 3px solid var(--gray);
+    color: var(--light-gray);
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.landing-login-btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+}

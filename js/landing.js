@@ -10,9 +10,17 @@ export function handleLogoClick(e) {
     sessionStorage.setItem("decklister_intentional_home", "true");
 }
 
+// Check if this is a protected redirect
+export function hasRedirectParam() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('redirect');
+}
+
 // Setup landing page behavior
 export function setupLandingPage() {
     if (state.isLandingPage) {
+        const redirectUUID = hasRedirectParam();
+
         // Check if user has a saved ID and didn't intentionally navigate home
         const savedUserId = localStorage.getItem("decklister_user_id");
         const intentionalHome = sessionStorage.getItem("decklister_intentional_home");
@@ -20,7 +28,8 @@ export function setupLandingPage() {
         // Clear the intentional home flag
         sessionStorage.removeItem("decklister_intentional_home");
 
-        if (savedUserId && !intentionalHome) {
+        // Don't auto-redirect if there's a redirect param (user needs to login)
+        if (savedUserId && !intentionalHome && !redirectUUID) {
             // Redirect to their saved page
             window.location.href = "/" + savedUserId;
             return true;
@@ -28,6 +37,14 @@ export function setupLandingPage() {
 
         // Show landing page
         document.body.classList.add("landing-mode");
+
+        // Update subtitle if this is a protected redirect
+        if (redirectUUID) {
+            const subtitle = document.querySelector('.landing-subtitle');
+            if (subtitle) {
+                subtitle.textContent = 'This decklist is protected. Please login to access it.';
+            }
+        }
 
         if (dom.getStartedBtn) {
             dom.getStartedBtn.onclick = () => {

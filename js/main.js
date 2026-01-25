@@ -12,6 +12,7 @@ import { initAutocomplete, triggerAutocomplete, hideAutocomplete } from './autoc
 import { initResizers } from './resizer.js';
 import { setupLandingPage, initLogoHandlers } from './landing.js';
 import { initMobileHandlers } from './mobile.js';
+import { initAuth, updateAuthUI } from './auth.js';
 
 // Initialize editor input handler
 function initEditor() {
@@ -55,6 +56,9 @@ async function start() {
     // Initialize logo click handlers (for returning to landing page)
     initLogoHandlers();
 
+    // Initialize auth (needed for landing page login button)
+    initAuth();
+
     // Handle landing page
     if (setupLandingPage()) {
         return;
@@ -74,7 +78,15 @@ async function start() {
     initEditor();
 
     // Load data from API
-    await load();
+    const loadResult = await load();
+
+    // If auth is required, the load function will redirect
+    if (loadResult?.authRequired) {
+        return;
+    }
+
+    // Update auth UI (show/hide buttons based on auth state)
+    updateAuthUI();
 
     // Set initial URL state for history
     setInitialUrlState();
