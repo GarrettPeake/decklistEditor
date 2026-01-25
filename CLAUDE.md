@@ -6,7 +6,7 @@ Decklist Editor is a web-based application for creating, managing, and organizin
 
 **Author**: Garrett Peake
 **License**: MIT
-**Version**: 1.5.0
+**Version**: 1.6.0
 
 ## Architecture Overview
 
@@ -28,7 +28,8 @@ decklistEditor/
 │   ├── main.js           # Entry point, orchestrates initialization
 │   ├── state.js          # Application state and configuration
 │   ├── dom.js            # Centralized DOM element references
-│   ├── api.js            # API calls (load, save, share, Scryfall)
+│   ├── api.js            # API calls (load, save, share, Scryfall, auth)
+│   ├── auth.js           # Authentication UI and handlers
 │   ├── router.js         # URL parsing and history management
 │   ├── deckList.js       # Deck list rendering and switching
 │   ├── cardDisplay.js    # Card preview and Scryfall integration
@@ -51,6 +52,7 @@ decklistEditor/
 │   ├── autocomplete.css  # Autocomplete dropdown
 │   ├── landing.css       # Landing page
 │   ├── resize.css        # Resize handles
+│   ├── auth.css          # Auth modal and buttons
 │   ├── share-mode.css    # Read-only view overrides
 │   └── responsive.css    # All media queries
 ├── index.html            # Main application UI
@@ -70,9 +72,10 @@ decklistEditor/
 The Worker serves as the backend API and static asset server.
 
 **Key Features**:
-- Handles API routes under `/api/{user}` and `/api/share`
+- Handles API routes under `/api/{user}`, `/api/share`, and `/api/auth`
 - Manages GET and PUT requests for user deck data
 - Manages deck sharing with live references
+- Provides optional authentication with JWT tokens and PBKDF2 password hashing
 - Integrates with Cloudflare KV for persistent storage
 - Auto-migrates legacy data formats
 - Serves static assets (HTML, CSS, JS) for all other routes
@@ -100,9 +103,24 @@ The Worker serves as the backend API and static asset server.
   - Returns only deck text (user identity not exposed)
   - Handles both old format (plain text) and new format (references)
 
+- `POST /api/auth/register`: Creates a new account linked to a UUID
+  - Accepts `{username, password, uuid}` in request body
+  - Validates username (3-30 alphanumeric characters or underscores)
+  - Hashes password with PBKDF2 (100,000 iterations, SHA-256)
+  - Stores account data and creates reverse lookup
+  - Returns `{token, username}` JWT for authentication
+
+- `POST /api/auth/login`: Authenticates user and returns JWT
+  - Accepts `{username, password}` in request body
+  - Verifies password with constant-time comparison
+  - Returns `{token, uuid, username}` on success
+  - Uses timing-safe comparison to prevent enumeration attacks
+
 **KV Key Patterns**:
-- `user:{username}` - User's deck list (array of `{id, text}` objects)
+- `user:{uuid}` - User's deck list (array of `{id, text}` objects)
 - `share:{uuid}` - Share reference (`{user, deckId}`) or legacy plain text
+- `account:{username}` - Account data (`{uuid, passwordHash, salt, createdAt}`)
+- `uuid-account:{uuid}` - Reverse lookup from UUID to username (for protection check)
 
 **Data Migration** (src/index.js:82-116):
 - Checks for new `user:` prefixed key first
@@ -127,7 +145,8 @@ The frontend is organized into ES modules for maintainability. Each module has a
 | `main.js` | Entry point, orchestrates initialization |
 | `state.js` | Application state and helper functions |
 | `dom.js` | Centralized DOM element references |
-| `api.js` | API calls (load, save, share, Scryfall) |
+| `api.js` | API calls (load, save, share, Scryfall, auth) |
+| `auth.js` | Authentication UI modal and handlers |
 | `router.js` | URL parsing and history management |
 | `deckList.js` | Deck list rendering and switching |
 | `cardDisplay.js` | Card preview and connection line |
@@ -146,9 +165,14 @@ The frontend is organized into ES modules for maintainability. Each module has a
 - `isRenderMode`: Boolean for mobile render/edit mode toggle
 - `isShareMode`: Boolean for read-only share view (const)
 - `shareId`: UUID from share URL path (const)
-- `currentUser`: Username parsed from URL (const)
+- `currentUser`: UUID parsed from URL (const)
 - `initialDeckId`: Deck ID parsed from URL for deep linking (const)
 - `isLandingPage`: Boolean for landing page detection (const)
+
+**Auth State Variables**:
+- `authToken`: JWT token from localStorage (null if not authenticated)
+- `currentUsername`: Username from localStorage (null if not authenticated)
+- `isAuthenticated`: Boolean derived from authToken presence
 
 **Autocomplete State Variables**:
 - `autocompleteResults`: Array of current search results from Scryfall
@@ -167,10 +191,26 @@ The frontend is organized into ES modules for maintainability. Each module has a
 
 #### API Module (`js/api.js`)
 
-- `load()`: Fetches user/share data from API on startup
-- `save()`: Debounced save to API (500ms delay)
+- `load()`: Fetches user/share data from API on startup; handles 401 for protected decklists
+- `save()`: Debounced save to API (500ms delay); includes auth headers if authenticated
 - `shareDeck()`: Creates share link via API, returns URL
 - `getCard(cardName)`: Fetches card data from Scryfall API
+- `register(username, password, uuid)`: Creates account and stores JWT
+- `login(username, password)`: Authenticates and stores JWT
+- `logout()`: Clears auth state and localStorage
+
+#### Auth Module (`js/auth.js`)
+
+- `showAuthModal(mode)`: Opens auth modal in 'login' or 'register' mode
+- `hideAuthModal()`: Closes auth modal and clears form
+- `setAuthMode(mode)`: Toggles between login and register views
+- `toggleAuthMode()`: Switches between login/register in modal
+- `showAuthError(message)`: Displays error message in modal
+- `clearAuthError()`: Clears error message
+- `handleAuthSubmit(e)`: Handles form submission for login/register
+- `handleLogout()`: Logs out user and redirects to landing
+- `updateAuthUI()`: Updates header buttons based on auth state
+- `initAuth()`: Sets up all auth event listeners
 
 #### Router Module (`js/router.js`)
 
@@ -224,7 +264,8 @@ The frontend is organized into ES modules for maintainability. Each module has a
 #### Landing Module (`js/landing.js`)
 
 - `handleLogoClick(e)`: Sets flag for intentional navigation home
-- `setupLandingPage()`: Shows landing page or redirects returning users
+- `hasRedirectParam()`: Checks for protected decklist redirect in URL
+- `setupLandingPage()`: Shows landing page or redirects returning users; handles protected redirect flow
 - `initLogoHandlers()`: Sets up logo click handlers
 
 #### Mobile Module (`js/mobile.js`)
@@ -333,6 +374,7 @@ The CSS is organized into focused modules using CSS `@import`. Each module has a
 | `autocomplete.css` | Autocomplete dropdown |
 | `landing.css` | Landing page |
 | `resize.css` | Resize handles |
+| `auth.css` | Auth modal and header buttons |
 | `share-mode.css` | Read-only view overrides |
 | `responsive.css` | All media queries |
 
@@ -384,6 +426,19 @@ The CSS is organized into focused modules using CSS `@import`. Each module has a
 - `.sidebar-resizer`: Positioned on right edge of sidebar
 - `.display-resizer`: Positioned on left edge of card display
 - `.mobile-render-resizer`: Horizontal handle between card display and card links (mobile only)
+
+**Auth Modal & Buttons** (`styles/auth.css`):
+- `.auth-modal`: Full-screen overlay with centered modal content
+- `.auth-modal-content`: Dark modal with form inputs
+- `.auth-input`: Styled form inputs with focus states
+- `.auth-submit-btn`: Orange primary action button
+- `.auth-error`: Red error message display
+- `.auth-toggle`: Link to switch between login/register modes
+- `.header-auth`: Flex container for desktop header auth buttons
+- `.auth-btn`: Header button with icon, `.primary` modifier for orange background
+- `.username-display`: Shows logged-in username with icon
+- `.mobile-auth-section`: Mobile dropdown auth buttons
+- `.landing-login-btn`: Secondary button on landing page
 
 #### Responsive Breakpoints (`styles/responsive.css`)
 
@@ -533,7 +588,8 @@ This starts a local development server with hot reloading.
 1. Install Wrangler CLI
 2. Configure Cloudflare account credentials
 3. Create KV namespace matching `wrangler.toml` ID
-4. Deploy using `npm run deploy`
+4. Set JWT secret for production: `wrangler secret put JWT_SECRET`
+5. Deploy using `npm run deploy`
 
 ## Technical Notes
 
@@ -561,11 +617,15 @@ This starts a local development server with hot reloading.
 
 ### Security Considerations
 
-- No authentication implemented (user URLs are public)
-- Data accessible to anyone with the URL path
-- Share links do not expose user identity
+- **Optional Authentication**: Users can create accounts to protect their decklists
+- **Password Security**: PBKDF2 with 100,000 iterations and SHA-256 for password hashing
+- **JWT Tokens**: HS256-signed tokens with 7-day expiry, stored in localStorage
+- **Timing Attack Prevention**: Constant-time password comparison; dummy hash for non-existent users
+- **Unprotected Decklists**: Without an account, data accessible to anyone with the URL
+- Share links do not expose user identity (remain public even for protected decklists)
 - No input sanitization on deck names
 - CORS not configured (relies on same-origin)
+- **JWT Secret**: Should be configured via `wrangler secret put JWT_SECRET` in production
 
 ### Data Migration
 
@@ -662,6 +722,34 @@ The application uses two Scryfall API endpoints:
 5. Share URL with others
 6. Recipients see read-only view with current deck content
 
+### Authentication Workflow
+
+**Creating an Account (Protecting Your Decklist)**:
+1. Visit your decklist page (`/{uuid}`)
+2. Click "Create Account" in the header
+3. Enter username (3-30 alphanumeric/underscore) and password
+4. Account is linked to your current UUID
+5. Future visits to your UUID will require login
+6. Bookmark warning is hidden once authenticated
+
+**Logging In**:
+1. Visit `/` or click "Login" button
+2. Enter username and password
+3. On success, redirected to your protected decklist
+4. JWT token stored in localStorage (7-day expiry)
+
+**Protected Decklist Access**:
+1. Visit a protected UUID without being logged in
+2. Redirected to `/?redirect={uuid}`
+3. See "This decklist is protected. Please login to access it."
+4. Click "Login" and authenticate
+5. Automatically redirected to the protected decklist
+
+**Logging Out**:
+1. Click "Logout" button in header
+2. JWT token cleared from localStorage
+3. Redirected to landing page
+
 ## Deck Format Example
 
 ```
@@ -689,7 +777,6 @@ My Burn Deck
 
 ## Future Enhancement Opportunities
 
-- User authentication and private decks
 - Export to various formats (MTGO, Arena, text)
 - Import from popular deck sites
 - Deck statistics (mana curve, color distribution)
@@ -699,6 +786,8 @@ My Burn Deck
 - Collaborative deck editing
 - Enhanced autocomplete with card images/previews
 - Autocomplete filtering by card type, color, format legality
+- Per-IP rate limiting on auth endpoints
+- Password reset functionality
 
 ## Troubleshooting
 
@@ -729,9 +818,17 @@ My Burn Deck
 - Check browser console for history API errors
 - Verify deck has valid UUID
 
+**Authentication issues**:
+- **Can't access protected decklist**: Ensure you're logged in with the correct account
+- **Login fails**: Verify username and password; check for typos
+- **Registration fails**: Username may already be taken; try a different one
+- **Token expired**: Log out and log back in (tokens expire after 7 days)
+- **"This decklist is protected" message**: You need to log in to access this decklist
+
 ## Repository History
 
 Recent commits show:
+- Optional user authentication with JWT tokens, PBKDF2 password hashing, protected decklists (v1.6.0)
 - New user onboarding with sample deck, empty decks state handling with disabled editor (v1.5.0)
 - Improved resize handles with visual dot indicators, sidebar/display px-based resizing, mobile render resizer (v1.4.0)
 - Overflow fixes: sidebar deck list scrolling, autocomplete position-above, share mode layout (v1.3.1)
