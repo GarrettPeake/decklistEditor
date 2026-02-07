@@ -79,9 +79,12 @@ export async function save() {
             body: JSON.stringify(state.data),
             headers: getAuthHeaders()
         });
+        try {
+            localStorage.setItem("link_cache", JSON.stringify(state.link_cache));
+        } catch {
+            // Handle QuotaExceededError gracefully
+        }
     }, 500);
-
-    localStorage.setItem("link_cache", JSON.stringify(state.link_cache));
 }
 
 // Create a share link for current deck
@@ -95,9 +98,14 @@ export async function shareDeck() {
     try {
         const response = await fetch('/api/share', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ user: state.currentUser, deckId: deck.id })
         });
+        if (!response.ok) {
+            const errorResult = await response.json();
+            alert(errorResult.error || 'Failed to create share link');
+            return null;
+        }
         const result = await response.json();
         return `${window.location.origin}/share/${result.uuid}`;
     } catch (err) {
@@ -112,15 +120,21 @@ export async function getCard(cardName) {
         return state.link_cache[cardName];
     }
 
-    const resp = await (await fetch("https://api.scryfall.com/cards/named?exact=" + cardName)).json();
-    const cardData = {
-        link: resp["scryfall_uri"],
-        imgfront: resp["card_faces"]?.[0]?.["image_uris"]?.["border_crop"] || resp["image_uris"]?.["border_crop"],
-        imgback: resp["card_faces"]?.[1]?.["image_uris"]?.["border_crop"]
-    };
+    try {
+        const resp = await (await fetch("https://api.scryfall.com/cards/named?exact=" + encodeURIComponent(cardName))).json();
+        const cardData = {
+            link: resp["scryfall_uri"],
+            imgfront: resp["card_faces"]?.[0]?.["image_uris"]?.["border_crop"] || resp["image_uris"]?.["border_crop"],
+            imgback: resp["card_faces"]?.[1]?.["image_uris"]?.["border_crop"]
+        };
 
-    state.link_cache[cardName] = cardData;
-    return cardData;
+        if (cardData.link) {
+            state.link_cache[cardName] = cardData;
+        }
+        return cardData;
+    } catch {
+        return { link: null, imgfront: null, imgback: null };
+    }
 }
 
 // ========================================
@@ -129,10 +143,22 @@ export async function getCard(cardName) {
 
 // Register a new account
 export async function register(username, password, uuid) {
+    // First, obtain a registration nonce to prove page access
+    const nonceResponse = await fetch('/api/auth/registration-nonce', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuid })
+    });
+    if (!nonceResponse.ok) {
+        const nonceError = await nonceResponse.json();
+        throw new Error(nonceError.error || 'Failed to start registration');
+    }
+    const { nonce: registrationNonce } = await nonceResponse.json();
+
     const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, uuid })
+        body: JSON.stringify({ username, password, uuid, registrationNonce })
     });
 
     const result = await response.json();

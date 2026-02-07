@@ -121,9 +121,18 @@ async function verifyJWT(token, secret) {
 // Auth Helper Functions
 // ========================================
 
+let devSecret = null;
+
 function getJWTSecret(env) {
-  // Use environment secret, fall back to a default for development
-  return env.JWT_SECRET || 'decklister-dev-secret-change-in-production';
+  if (env.JWT_SECRET) {
+    return env.JWT_SECRET;
+  }
+  // Generate a random per-instance secret for development only
+  if (!devSecret) {
+    devSecret = crypto.randomUUID() + crypto.randomUUID();
+    console.warn('WARNING: JWT_SECRET not set. Using random development secret. Auth tokens will not persist across restarts.');
+  }
+  return devSecret;
 }
 
 async function extractAndVerifyToken(request, env) {
@@ -142,21 +151,81 @@ async function isUUIDProtected(uuid, env) {
 }
 
 // ========================================
+// Security Headers
+// ========================================
+
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+};
+
+function addSecurityHeaders(response) {
+  const newResponse = new Response(response.body, response);
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    newResponse.headers.set(key, value);
+  }
+  return newResponse;
+}
+
+// ========================================
 // Main Worker
 // ========================================
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const response = await handleRequest(request, env, ctx, url);
+    return addSecurityHeaders(response);
+  },
+};
+
+async function handleRequest(request, env, ctx, url) {
 
     // ========================================
     // Auth API Routes
     // ========================================
 
+    // POST /api/auth/registration-nonce - Generate a one-time registration nonce
+    if (url.pathname === '/api/auth/registration-nonce' && request.method === 'POST') {
+      try {
+        const { uuid } = await request.json();
+        if (!uuid) {
+          return new Response(JSON.stringify({ error: 'UUID required' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Check if already protected
+        const isProtected = await isUUIDProtected(uuid, env);
+        if (isProtected) {
+          return new Response(JSON.stringify({ error: 'This decklist is already protected' }), {
+            status: 409,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        const nonce = crypto.randomUUID();
+        // Store nonce with 5-minute TTL
+        await env.DECKLISTEDITOR.put(`reg-nonce:${uuid}`, nonce, { expirationTtl: 300 });
+
+        return new Response(JSON.stringify({ nonce }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: 'Failed to generate nonce' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     // POST /api/auth/register - Create account, link to UUID
     if (url.pathname === '/api/auth/register' && request.method === 'POST') {
       try {
-        const { username, password, uuid } = await request.json();
+        const { username, password, uuid, registrationNonce } = await request.json();
 
         if (!username || !password || !uuid) {
           return new Response(JSON.stringify({ error: 'Username, password, and UUID required' }), {
@@ -164,6 +233,17 @@ export default {
             headers: { 'Content-Type': 'application/json' },
           });
         }
+
+        // Verify registration nonce to prevent UUID hijacking
+        const storedNonce = await env.DECKLISTEDITOR.get(`reg-nonce:${uuid}`);
+        if (!storedNonce || storedNonce !== registrationNonce) {
+          return new Response(JSON.stringify({ error: 'Invalid or expired registration nonce' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        // Consume the nonce (one-time use)
+        await env.DECKLISTEDITOR.delete(`reg-nonce:${uuid}`);
 
         // Validate username (alphanumeric, 3-30 chars)
         if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
@@ -301,6 +381,19 @@ export default {
         if (!user || !deckId) {
           return new Response('User and deckId required', { status: 400 });
         }
+
+        // If the deck owner has a protected account, require authentication
+        const isProtected = await isUUIDProtected(user, env);
+        if (isProtected) {
+          const payload = await extractAndVerifyToken(request, env);
+          if (!payload || payload.sub !== user) {
+            return new Response(JSON.stringify({ error: 'Authentication required' }), {
+              status: 401,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+        }
+
         const uuid = crypto.randomUUID();
         try {
           await env.DECKLISTEDITOR.put(`share:${uuid}`, JSON.stringify({ user, deckId }));
@@ -441,9 +534,38 @@ export default {
       // Handle PUT request
       if (request.method === 'PUT') {
         const body = await request.text();
+
+        // Validate body is a JSON array of deck objects
+        if (body.length > 1_000_000) {
+          return new Response(JSON.stringify({ error: 'Payload too large' }), {
+            status: 413,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        let decks;
         try {
-          await env.DECKLISTEDITOR.put(`user:${user}`, body);
-          return new Response(body, { status: 200 });
+          decks = JSON.parse(body);
+        } catch {
+          return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (!Array.isArray(decks) || !decks.every(d =>
+          d && typeof d === 'object' && typeof d.id === 'string' && typeof d.text === 'string'
+        )) {
+          return new Response(JSON.stringify({ error: 'Invalid deck format' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        try {
+          const validated = JSON.stringify(decks);
+          await env.DECKLISTEDITOR.put(`user:${user}`, validated);
+          return new Response(validated, { status: 200 });
         } catch (err) {
           return new Response(err.message, { status: 500 });
         }
@@ -454,5 +576,4 @@ export default {
 
     // Serve static assets
     return env.ASSETS.fetch(request);
-  },
-};
+}

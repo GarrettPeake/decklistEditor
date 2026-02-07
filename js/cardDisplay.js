@@ -107,7 +107,7 @@ export function updateData(newData) {
             dom.cardLinks.innerHTML = "";
 
             const title = document.createElement("p");
-            title.innerHTML = cards[0];
+            title.textContent = cards[0];
             title.classList.add("deck-title");
             dom.cardLinks.appendChild(title);
 
@@ -125,7 +125,7 @@ export function updateData(newData) {
 
                         const header = document.createElement("p");
                         header.classList.add("header");
-                        header.innerHTML = lineText.substring(1).trim();
+                        header.textContent = lineText.substring(1).trim();
                         dom.cardLinks.appendChild(header);
 
                         // Start new stack for this section

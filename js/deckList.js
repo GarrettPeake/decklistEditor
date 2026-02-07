@@ -8,6 +8,7 @@ import { save, shareDeck as apiShareDeck } from './api.js';
 import { updateUrl } from './router.js';
 import { updateData } from './cardDisplay.js';
 import { hideAutocomplete } from './autocomplete.js';
+import { trapFocus } from './auth.js';
 import { closeMobileMenu } from './mobile.js';
 
 // Render the deck list in sidebar and mobile dropdown
@@ -80,7 +81,7 @@ export function setDeckList() {
         const button = document.createElement("button");
         button.classList.add("DeckButton", "deck-name-btn");
         button.onclick = switchDeck(i);
-        button.innerHTML = deckname;
+        button.textContent = deckname;
 
         // Share button (icon only)
         const shareBtn = document.createElement("button");
@@ -199,6 +200,11 @@ export async function shareDeck() {
         // Show modal with share URL
         dom.shareUrlInput.value = shareUrl;
         dom.shareModal.classList.add("open");
+        // Trap focus within share modal
+        const modalContent = dom.shareModal.querySelector('.share-modal-content');
+        if (modalContent) {
+            trapFocus(dom.shareModal, modalContent);
+        }
     }
 }
 

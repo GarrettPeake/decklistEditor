@@ -10,6 +10,26 @@ import { register, login, logout } from './api.js';
 // Auth Modal Functions
 // ========================================
 
+// Trap focus within a modal element
+export function trapFocus(modalOverlay, modalContent) {
+    const focusableSelector = 'input, button, a[href], [tabindex]:not([tabindex="-1"])';
+    modalOverlay.onkeydown = (e) => {
+        if (e.key !== 'Tab') return;
+        const focusable = [...modalContent.querySelectorAll(focusableSelector)]
+            .filter(el => !el.disabled && el.offsetParent !== null);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
+    };
+}
+
 // Show auth modal
 export function showAuthModal(mode = 'login') {
     if (!dom.authModal) return;
@@ -23,12 +43,19 @@ export function showAuthModal(mode = 'login') {
     if (dom.authUsernameInput) {
         setTimeout(() => dom.authUsernameInput.focus(), 100);
     }
+
+    // Trap focus within modal
+    const modalContent = dom.authModal.querySelector('.auth-modal-content');
+    if (modalContent) {
+        trapFocus(dom.authModal, modalContent);
+    }
 }
 
 // Hide auth modal
 export function hideAuthModal() {
     if (!dom.authModal) return;
     dom.authModal.classList.remove('open');
+    dom.authModal.onkeydown = null;
     clearAuthError();
     clearAuthForm();
 }

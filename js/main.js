@@ -36,6 +36,7 @@ function initShareModal() {
     if (dom.closeShareModal) {
         dom.closeShareModal.onclick = () => {
             dom.shareModal.classList.remove("open");
+            dom.shareModal.onkeydown = null;
         };
     }
     if (dom.copyShareBtn) {
@@ -46,6 +47,7 @@ function initShareModal() {
         dom.shareModal.onclick = (e) => {
             if (e.target === dom.shareModal) {
                 dom.shareModal.classList.remove("open");
+                dom.shareModal.onkeydown = null;
             }
         };
     }
