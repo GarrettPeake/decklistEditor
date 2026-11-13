@@ -1,19 +1,38 @@
 name = "decklister"
 main = "src/index.js"
-compatibility_date = "2025-01-10"
+compatibility_date = "2025-11-01"
+compatibility_flags = ["nodejs_compat"]
 account_id = "5af9bf2be24dfe756af55b3bbd542e57"
+# Served at https://decklister.gpeake.com, a custom domain attached in the dashboard
+# (not listed here: `routes` makes `wrangler dev` rewrite Host and Origin). Any other
+# address redirects there (src/index.js), so sessions and GAuth's answers line up.
 
 [observability]
 [observability.logs]
 enabled = true
 invocation_logs = true
 
+# The site. Only public/ is served: the rest of the repo is not.
 [assets]
-directory = "."
+directory = "public"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/api/*"]
+run_worker_first = ["/api/*", "/auth/*"]
 
 [[kv_namespaces]]
 binding = "DECKLISTEDITOR"
 id = "bb576df04a11477f935a3b59ae24ba18"
+
+# Accounts (src/accounts): Better Auth's tables and protected links. Decks stay in KV.
+[[d1_databases]]
+binding = "DB"
+database_name = "decklister"
+database_id = "2403a9a2-05e5-42ca-9866-6acca7daf30e"
+migrations_dir = "migrations"
+
+# BETTER_AUTH_SECRET is a secret (wrangler secret put). GAUTH_CERTS is GAuth's SAML
+# signing certificate (PEM, from GAuth's app page); list both during a key rotation.
+[vars]
+APP_ORIGIN = "https://decklister.gpeake.com"
+GAUTH_ORIGIN = "https://auth.gpeake.com"
+GAUTH_CERTS = "-----BEGIN CERTIFICATE-----\nMIIETzCCAregAwIBAgIUQTIyLSxY+lMKtuSPlsypAZWXWRIwDQYJKoZIhvcNAQEL\nBQAwNzEYMBYGA1UEAwwPYXV0aC5ncGVha2UuY29tMRswGQYDVQQKDBJHQXV0aCBT\nQU1MIHNpZ25pbmcwHhcNMjYxMTA5MDIxMDMxWhcNMzExMTA5MDIxMDMxWjA3MRgw\nFgYDVQQDDA9hdXRoLmdwZWFrZS5jb20xGzAZBgNVBAoMEkdBdXRoIFNBTUwgc2ln\nbmluZzCCAaIwDQYJKoZIhvcNAQEBBQADggGPADCCAYoCggGBAKobG6FczKAEssZd\npHx6uw1F5htqb8daARRvo8VZvHQdoLzohPMGki8VNfAMbRakqjun0enh4yOihhVZ\nDSrJjr9YQa5AY5feghGtHDk4THqHVOiniZ47kFP+bHQrKinD4kcwL48UnUi2a0Ic\naMA25VFhWBCKdoKBMPCFL/eBZ5VdTw/LDyHGW9rQSwsIzF1RlOnkOZyAXqjw5XLM\nLEFETjww0s/3nzluYK6NlI5D+f2qU+WzIuRaSJqGO4S35X8q2iNei63yXU5cTCrr\n9nndaa65LoP0GDt3PnWHVpZ0q5riqJ9FkGG0+w/iNRZv9iihE7pVtMR+O2ssQmJc\nqm6o0dnFQ0WBFlfnkIBS5mj8BOLaQ3X1aMojlvkTpdqVBTBB8Et9ywEjuRB3D27g\nqS0urDLbnNTrraLjUowcOUWsK8lcMldCubuujjyBCCJeKjz9xsdVTAs1KFfD8ITt\nJYPF5aF2WGOMj4lPGWlOIgsH/1oE4grTNBP+kbSLQmZ4/mGIIwIDAQABo1MwUTAd\nBgNVHQ4EFgQUsasqlt3BMFxnUpF3/lwtS8+rHFkwHwYDVR0jBBgwFoAUsasqlt3B\nMFxnUpF3/lwtS8+rHFkwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOC\nAYEAHA9475KmGxmg5CotZKyYwI+LKC6SMR4nwWrJyz4G3x+We2L2+zOXnF6waDIq\nPU1L6e8cT+cOurn4d9m3GgL4wN4Xy+H2EgPP979TdXPmTD00MNY1SMMoIoW7fwkP\ncTLROsPgTBDY+v9OzkGgRwmoG3EJZjsw+i5kMmglBoT3zaPaxb6t+lBoTdZEmwEV\ng0Fs1dgC0PNpJlBxVF9qKz4g9XsyknViQxpZVKJ6wL5fi4xir5m0RB8PsHFlAYcS\nDwOojRno/0I+pGhPf9qR6/4H+GKIu+vC6qsbhfJTTbwCrbETwp/uB+J9x1mCmXSb\nrIa3P4kaiM1jQweM8ZXOg79f2PvwyCBG/ldbmKbLcd38sDtcFFuOeoLE+BhE4A7z\nPS7Gx9QCNg8Ige4W3Hlmq0/L8snW4KmUSWqw8m6uUUDRiZjEWg9RAcEqnzha9GIm\nsxnaPezdf3oLRHkF3lt8I0TkFeYGDHJsZ6UFJdhcjSD1bQUQQlfE3WRgktlyR/Zh\no6Y+\n-----END CERTIFICATE-----"

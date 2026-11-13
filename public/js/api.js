@@ -6,14 +6,16 @@ import * as state from './state.js';
 import { loadPanelSizes } from './resizer.js';
 
 let saveTimer;
+let onLocked = () => {};
 
-// Get auth headers if authenticated
-function getAuthHeaders() {
-    if (state.authToken) {
-        return { 'Authorization': `Bearer ${state.authToken}` };
-    }
-    return {};
+/** What to do when a save finds the link locked (the session ended mid-edit). */
+export function setOnLocked(handler) {
+    onLocked = handler;
 }
+
+// Edits a save couldn't store because the session ended: kept in this tab until
+// the owner signs in again (load() puts them back).
+const unsavedKey = () => `decklister.unsaved.${state.currentUser}`;
 
 // Load data from API
 export async function load() {
@@ -27,24 +29,27 @@ export async function load() {
             state.setData(["# Shared deck not found"]);
         }
     } else if (state.currentUser) {
-        // Load user decks (returns array of {id, text} objects)
-        const response = await fetch(`/api/${state.currentUser}`, {
-            headers: getAuthHeaders()
-        });
+        // Load user decks (returns array of {id, text} objects). The session cookie
+        // goes along: a protected link opens only in its owner's session.
+        const response = await fetch(`/api/${state.currentUser}`);
 
-        if (response.status === 401) {
-            // Protected decklist - need to login
-            const result = await response.json();
+        if (response.status === 401 || response.status === 403) {
+            const result = await response.json().catch(() => ({}));
             if (result.protected) {
-                // Redirect to landing page with redirect param
-                window.location.href = `/?redirect=${state.currentUser}`;
-                return { authRequired: true };
+                return { locked: true, otherAccount: !!result.otherAccount };
             }
         }
 
         if (response.ok) {
             const js = await response.json();
             state.setData(js);
+            const unsaved = sessionStorage.getItem(unsavedKey());
+            if (unsaved) {
+                sessionStorage.removeItem(unsavedKey());
+                state.setData(JSON.parse(unsaved));
+                save();
+            }
+            state.setLinkProtected(response.headers.get('X-Link-Protected') === '1');
 
             // Find initial deck by ID if specified in URL
             if (state.initialDeckId && state.data.length > 0) {
@@ -64,7 +69,7 @@ export async function load() {
     // Load saved panel sizes
     loadPanelSizes();
 
-    return { authRequired: false };
+    return { locked: false };
 }
 
 // Save data to API (debounced)
@@ -74,11 +79,22 @@ export async function save() {
 
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
+        const body = JSON.stringify(state.data);
         fetch(`/api/${state.currentUser}`, {
             method: "put",
-            body: JSON.stringify(state.data),
-            headers: getAuthHeaders()
-        });
+            body,
+            headers: { 'Content-Type': 'application/json' }
+        }).then(async (response) => {
+            if (response.status !== 401 && response.status !== 403) return;
+            const result = await response.json().catch(() => ({}));
+            if (!result.protected) return;
+            try {
+                sessionStorage.setItem(unsavedKey(), body);
+            } catch {
+                // Too big for session storage: the dialog still lets them sign back in.
+            }
+            onLocked({ otherAccount: !!result.otherAccount });
+        }).catch(() => {});
         try {
             localStorage.setItem("link_cache", JSON.stringify(state.link_cache));
         } catch {
@@ -98,7 +114,7 @@ export async function shareDeck() {
     try {
         const response = await fetch('/api/share', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user: state.currentUser, deckId: deck.id })
         });
         if (!response.ok) {
@@ -135,67 +151,4 @@ export async function getCard(cardName) {
     } catch {
         return { link: null, imgfront: null, imgback: null };
     }
-}
-
-// ========================================
-// Auth API Functions
-// ========================================
-
-// Register a new account
-export async function register(username, password, uuid) {
-    // First, obtain a registration nonce to prove page access
-    const nonceResponse = await fetch('/api/auth/registration-nonce', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uuid })
-    });
-    if (!nonceResponse.ok) {
-        const nonceError = await nonceResponse.json();
-        throw new Error(nonceError.error || 'Failed to start registration');
-    }
-    const { nonce: registrationNonce } = await nonceResponse.json();
-
-    const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, uuid, registrationNonce })
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-        throw new Error(result.error || 'Registration failed');
-    }
-
-    // Store auth token and username
-    state.setAuthToken(result.token);
-    state.setCurrentUsername(result.username);
-
-    return result;
-}
-
-// Login to existing account
-export async function login(username, password) {
-    const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-        throw new Error(result.error || 'Login failed');
-    }
-
-    // Store auth token and username
-    state.setAuthToken(result.token);
-    state.setCurrentUsername(result.username);
-
-    return result;
-}
-
-// Logout
-export function logout() {
-    state.clearAuth();
 }

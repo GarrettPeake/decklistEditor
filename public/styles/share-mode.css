@@ -45,3 +45,7 @@ body.share-mode .bookmark-warning {
 body.share-mode .mobile-menu-btn {
     display: none;
 }
+
+body.share-mode .header-auth {
+    display: none;
+}

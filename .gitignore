@@ -3,3 +3,4 @@
 **/.conductor/
 .playwright-cli
 .DS_Store
+.dev.vars

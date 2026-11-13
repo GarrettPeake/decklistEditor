@@ -5,6 +5,7 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="/styles/main.css">
+        <link rel="stylesheet" href="/js/accounts/accounts.css">
         <title>Decklister</title>
     </head>
     <body>
@@ -32,7 +33,12 @@
                 <p class="landing-subtitle">Create and manage your Magic: The Gathering decklists with ease</p>
                 <div class="landing-buttons">
                     <button id="getStartedBtn" class="landing-cta">Get Started</button>
-                    <button id="landingLoginBtn" class="landing-login-btn">Login</button>
+                    <button id="landingLoginBtn" class="landing-login-btn">Log in</button>
+                </div>
+                <!-- Shown when signed in: the account's protected links -->
+                <div id="landingAccount" class="landing-account" hidden>
+                    <p class="landing-account-who">Signed in as <strong id="landingAccountName"></strong> · <button type="button" id="landingLogoutBtn" class="landing-link-btn">Log out</button></p>
+                    <ul id="landingLinks" class="landing-links"></ul>
                 </div>
             </div>
         </div>
@@ -46,39 +52,39 @@
                 <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                <span>Bookmark this page to save your decks!</span>
+                <span>Bookmark this page to keep your decks, or protect it with an account.</span>
             </div>
             <div class="header-auth">
-                <span id="usernameDisplay" class="username-display" style="display: none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
+                <span id="protectedBadge" class="protected-badge" style="display: none;" title="Only your account can open this link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="4" y="11" width="16" height="10" rx="1"/>
+                        <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
                     </svg>
+                    Protected
                 </span>
-                <button id="createAccountBtn" class="auth-btn primary" style="display: none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <line x1="19" y1="8" x2="19" y2="14"/>
-                        <line x1="22" y1="11" x2="16" y2="11"/>
+                <button id="protectBtn" class="auth-btn primary" style="display: none;" title="Make this link open only for your account">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="4" y="11" width="16" height="10" rx="1"/>
+                        <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
                     </svg>
-                    Create Account
+                    Protect
                 </button>
+                <span id="usernameDisplay" class="username-display" style="display: none;"></span>
                 <button id="loginBtn" class="auth-btn" style="display: none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
                         <polyline points="10 17 15 12 10 7"/>
                         <line x1="15" y1="12" x2="3" y2="12"/>
                     </svg>
-                    Login
+                    Log in
                 </button>
                 <button id="logoutBtn" class="auth-btn" style="display: none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                         <polyline points="16 17 21 12 16 7"/>
                         <line x1="21" y1="12" x2="9" y2="12"/>
                     </svg>
-                    Logout
+                    Log out
                 </button>
             </div>
         </header>
@@ -100,9 +106,10 @@
             <div id="mobileDecks" class="mobile-decks-list"></div>
             <div class="mobile-auth-section">
                 <div id="mobileUsernameDisplay" class="mobile-username-display" style="display: none;"></div>
-                <button id="mobileCreateAccountBtn" class="mobile-auth-btn primary" style="display: none;">Create Account</button>
-                <button id="mobileLoginBtn" class="mobile-auth-btn" style="display: none;">Login</button>
-                <button id="mobileLogoutBtn" class="mobile-auth-btn" style="display: none;">Logout</button>
+                <div id="mobileProtectedNote" class="mobile-username-display" style="display: none;">Protected: only your account can open this link</div>
+                <button id="mobileProtectBtn" class="mobile-auth-btn primary" style="display: none;">Protect this link</button>
+                <button id="mobileLoginBtn" class="mobile-auth-btn" style="display: none;">Log in</button>
+                <button id="mobileLogoutBtn" class="mobile-auth-btn" style="display: none;">Log out</button>
             </div>
         </div>
 
@@ -184,28 +191,6 @@
             </div>
         </div>
 
-        <!-- Auth Modal -->
-        <div id="authModal" class="auth-modal" data-mode="login">
-            <div class="auth-modal-content">
-                <button id="authModalClose" class="auth-modal-close" aria-label="Close modal">&times;</button>
-                <h2 id="authModalTitle">Login</h2>
-                <div id="authError" class="auth-error"></div>
-                <form id="authForm" class="auth-form">
-                    <div class="auth-input-group">
-                        <label for="authUsername">Username</label>
-                        <input type="text" id="authUsername" class="auth-input" placeholder="Enter username" autocomplete="username" required>
-                    </div>
-                    <div class="auth-input-group">
-                        <label for="authPassword">Password</label>
-                        <input type="password" id="authPassword" class="auth-input" placeholder="Enter password" autocomplete="current-password" required>
-                    </div>
-                    <button type="submit" id="authSubmitBtn" class="auth-submit-btn">Login</button>
-                </form>
-                <div id="authToggleText" class="auth-toggle">
-                    Need an account? <a href="#" class="auth-toggle-link">Create one</a>
-                </div>
-            </div>
-        </div>
     </body>
     <script type="module" src="/js/main.js"></script>
 </html>

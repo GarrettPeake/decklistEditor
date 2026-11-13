@@ -8,10 +8,18 @@ export let link_cache = {};
 export let selectedDeck = 0;
 export let currentCardData = null;
 
-// Auth state
-export let authToken = localStorage.getItem('decklister_auth_token') || null;
-export let currentUsername = localStorage.getItem('decklister_username') || null;
-export let isAuthenticated = !!authToken;
+// Account state (js/auth.js): who's signed in (GET /api/account), and whether
+// this link is protected (it opens only in its owner's session).
+export let account = { signedIn: false };
+export let linkProtected = false;
+
+// Tokens from the sign-in that came before accounts (src/accounts); unused now.
+try {
+    localStorage.removeItem('decklister_auth_token');
+    localStorage.removeItem('decklister_username');
+} catch {
+    // Storage unavailable: nothing to clean up.
+}
 
 // UI state
 export let isMobile = window.innerWidth <= 768;
@@ -94,31 +102,12 @@ export function setLastEditorValue(value) {
     lastEditorValue = value;
 }
 
-export function setAuthToken(token) {
-    authToken = token;
-    isAuthenticated = !!token;
-    if (token) {
-        localStorage.setItem('decklister_auth_token', token);
-    } else {
-        localStorage.removeItem('decklister_auth_token');
-    }
+export function setAccount(value) {
+    account = value;
 }
 
-export function setCurrentUsername(username) {
-    currentUsername = username;
-    if (username) {
-        localStorage.setItem('decklister_username', username);
-    } else {
-        localStorage.removeItem('decklister_username');
-    }
-}
-
-export function clearAuth() {
-    authToken = null;
-    currentUsername = null;
-    isAuthenticated = false;
-    localStorage.removeItem('decklister_auth_token');
-    localStorage.removeItem('decklister_username');
+export function setLinkProtected(value) {
+    linkProtected = value;
 }
 
 // ========================================

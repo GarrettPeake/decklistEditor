@@ -4,22 +4,17 @@
 
 import * as state from './state.js';
 import * as dom from './dom.js';
+import { initLandingAccount, newLink } from './auth.js';
 
 // Handle logo click - set flag for intentional navigation
 export function handleLogoClick(e) {
     sessionStorage.setItem("decklister_intentional_home", "true");
 }
 
-// Check if this is a protected redirect
-export function hasRedirectParam() {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('redirect');
-}
-
-// Setup landing page behavior
-export function setupLandingPage() {
+// Setup landing page behavior. `authError`: a GAuth sign-in from here just failed.
+export function setupLandingPage(authError) {
     if (state.isLandingPage) {
-        const redirectUUID = hasRedirectParam();
+        const params = new URLSearchParams(window.location.search);
 
         // Check if user has a saved ID and didn't intentionally navigate home
         const savedUserId = localStorage.getItem("decklister_user_id");
@@ -28,8 +23,9 @@ export function setupLandingPage() {
         // Clear the intentional home flag
         sessionStorage.removeItem("decklister_intentional_home");
 
-        // Don't auto-redirect if there's a redirect param (user needs to login)
-        if (savedUserId && !intentionalHome && !redirectUUID) {
+        // Back from signing in (or failing to): stay for the account part.
+        const signingIn = authError || params.has('signed-in');
+        if (savedUserId && !intentionalHome && !signingIn) {
             // Redirect to their saved page
             window.location.href = "/" + savedUserId;
             return true;
@@ -38,22 +34,11 @@ export function setupLandingPage() {
         // Show landing page
         document.body.classList.add("landing-mode");
 
-        // Update subtitle if this is a protected redirect
-        if (redirectUUID) {
-            const subtitle = document.querySelector('.landing-subtitle');
-            if (subtitle) {
-                subtitle.textContent = 'This decklist is protected. Please login to access it.';
-            }
-        }
-
         if (dom.getStartedBtn) {
-            dom.getStartedBtn.onclick = () => {
-                const newUserId = crypto.randomUUID();
-                localStorage.setItem("decklister_user_id", newUserId);
-                window.location.href = "/" + newUserId;
-            };
+            dom.getStartedBtn.onclick = newLink;
         }
 
+        initLandingAccount(authError);
         return true;
     }
 

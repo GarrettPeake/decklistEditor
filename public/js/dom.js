@@ -52,28 +52,21 @@ export const displayResizer = document.getElementById("displayResizer");
 export const editorContainer = document.getElementById("syncScroll");
 export const mainContent = document.getElementById("mainContent");
 
-// Auth modal elements
-export const authModal = document.getElementById("authModal");
-export const authModalClose = document.getElementById("authModalClose");
-export const authModalTitle = document.getElementById("authModalTitle");
-export const authForm = document.getElementById("authForm");
-export const authUsernameInput = document.getElementById("authUsername");
-export const authPasswordInput = document.getElementById("authPassword");
-export const authSubmitBtn = document.getElementById("authSubmitBtn");
-export const authError = document.getElementById("authError");
-export const authToggleText = document.getElementById("authToggleText");
-
-// Desktop auth buttons
-export const createAccountBtn = document.getElementById("createAccountBtn");
+// Account controls (js/auth.js)
+export const protectBtn = document.getElementById("protectBtn");
+export const protectedBadge = document.getElementById("protectedBadge");
 export const loginBtn = document.getElementById("loginBtn");
 export const logoutBtn = document.getElementById("logoutBtn");
 export const usernameDisplay = document.getElementById("usernameDisplay");
 
-// Mobile auth buttons
-export const mobileCreateAccountBtn = document.getElementById("mobileCreateAccountBtn");
+export const mobileProtectBtn = document.getElementById("mobileProtectBtn");
+export const mobileProtectedNote = document.getElementById("mobileProtectedNote");
 export const mobileLoginBtn = document.getElementById("mobileLoginBtn");
 export const mobileLogoutBtn = document.getElementById("mobileLogoutBtn");
 export const mobileUsernameDisplay = document.getElementById("mobileUsernameDisplay");
 
-// Landing page auth button
 export const landingLoginBtn = document.getElementById("landingLoginBtn");
+export const landingAccount = document.getElementById("landingAccount");
+export const landingAccountName = document.getElementById("landingAccountName");
+export const landingLogoutBtn = document.getElementById("landingLogoutBtn");
+export const landingLinks = document.getElementById("landingLinks");

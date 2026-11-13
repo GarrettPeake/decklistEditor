@@ -23,13 +23,21 @@ Decklist Editor is a web-based application for creating, managing, and organizin
 ```
 decklistEditor/
 ├── src/
-│   └── index.js          # Cloudflare Worker entry point
-├── js/                   # Frontend ES modules
+│   ├── index.js          # Cloudflare Worker entry point
+│   └── accounts/         # Accounts + protected links (TypeScript; see its README.md)
+├── migrations/           # D1 (accounts) migrations
+├── scripts/              # migrate-legacy-accounts.mjs, link-gauth.mjs
+├── test/                 # vitest: accounts against SQLite
+└── public/               # The site: ONLY this directory is served
+    ├── index.html
+    ├── js/accounts/      # Accounts in the browser: accounts.js, dialog.js, accounts.css
+    └── (js/ and styles/ below live here too)
+├── js/                   # Frontend ES modules (public/js)
 │   ├── main.js           # Entry point, orchestrates initialization
 │   ├── state.js          # Application state and configuration
 │   ├── dom.js            # Centralized DOM element references
 │   ├── api.js            # API calls (load, save, share, Scryfall, auth)
-│   ├── auth.js           # Authentication UI and handlers
+│   ├── auth.js           # Decklister's account UI (Protect / Log in / Log out, locked links)
 │   ├── router.js         # URL parsing and history management
 │   ├── deckList.js       # Deck list rendering and switching
 │   ├── cardDisplay.js    # Card preview and Scryfall integration
@@ -63,7 +71,7 @@ decklistEditor/
 └── .gitignore            # Git ignore rules
 ```
 
-**Note**: The `script.js` and `styles.css` files in the root are legacy files kept for reference. The application now uses the modular files in `/js/` and `/styles/` directories.
+**Note**: The site lives in `public/` (`public/index.html`, `public/js/`, `public/styles/`). Only `public/` is served; before 2026-11 the assets directory was the repo root, which published CLAUDE.md, src/ and wrangler.toml.
 
 ## Component Details
 
@@ -72,10 +80,10 @@ decklistEditor/
 The Worker serves as the backend API and static asset server.
 
 **Key Features**:
-- Handles API routes under `/api/{user}`, `/api/share`, and `/api/auth`
+- Handles API routes under `/api/{user}`, `/api/share`, and the account routes (`/api/auth/*`, `/api/account*`, `/auth/*`, from `src/accounts`)
 - Manages GET and PUT requests for user deck data
 - Manages deck sharing with live references
-- Provides optional authentication with JWT tokens and PBKDF2 password hashing
+- Optional accounts (`src/accounts`, see its README.md): username/password or GAuth, and protected links that open only in their owner's session
 - Integrates with Cloudflare KV for persistent storage
 - Auto-migrates legacy data formats
 - Serves static assets (HTML, CSS, JS) for all other routes
@@ -103,24 +111,19 @@ The Worker serves as the backend API and static asset server.
   - Returns only deck text (user identity not exposed)
   - Handles both old format (plain text) and new format (references)
 
-- `POST /api/auth/register`: Creates a new account linked to a UUID
-  - Accepts `{username, password, uuid}` in request body
-  - Validates username (3-30 alphanumeric characters or underscores)
-  - Hashes password with PBKDF2 (100,000 iterations, SHA-256)
-  - Stores account data and creates reverse lookup
-  - Returns `{token, username}` JWT for authentication
-
-- `POST /api/auth/login`: Authenticates user and returns JWT
-  - Accepts `{username, password}` in request body
-  - Verifies password with constant-time comparison
-  - Returns `{token, uuid, username}` on success
-  - Uses timing-safe comparison to prevent enumeration attacks
+- Account routes (`src/accounts/README.md` has the details):
+  - `/api/auth/*`: Better Auth (`sign-in/username`, `sign-up/email`, `sign-in/discover`, `sign-out`, GAuth's SAML)
+  - `GET /api/account`: who's signed in and the links they protect
+  - `POST /api/account/links {id}`: protect a link with the signed-in account
+  - `GET /auth/gauth?next=`: sign in with GAuth, back to `next`
+- `GET`/`PUT /api/{user}` and `POST /api/share` check `accounts.access()`: a protected link answers 401/403 `{protected: true}` unless the request carries its owner's session. `GET` sets `X-Link-Protected: 1|0`.
 
 **KV Key Patterns**:
 - `user:{uuid}` - User's deck list (array of `{id, text}` objects)
 - `share:{uuid}` - Share reference (`{user, deckId}`) or legacy plain text
-- `account:{username}` - Account data (`{uuid, passwordHash, salt, createdAt}`)
-- `uuid-account:{uuid}` - Reverse lookup from UUID to username (for protection check)
+- `account:{username}`, `uuid-account:{uuid}` - The accounts made before 2026-11 (JWT era). No longer read: `scripts/migrate-legacy-accounts.mjs` moved them into D1 (same passwords, same protected links). Left in place, unchanged.
+
+**D1 (`DB`, database `decklister`)**: Better Auth's tables (`user`, `session`, `account`, ...) and `protectedLink (id, userId, createdAt)`. Decks stay in KV.
 
 **Data Migration** (src/index.js:82-116):
 - Checks for new `user:` prefixed key first
@@ -169,10 +172,9 @@ The frontend is organized into ES modules for maintainability. Each module has a
 - `initialDeckId`: Deck ID parsed from URL for deep linking (const)
 - `isLandingPage`: Boolean for landing page detection (const)
 
-**Auth State Variables**:
-- `authToken`: JWT token from localStorage (null if not authenticated)
-- `currentUsername`: Username from localStorage (null if not authenticated)
-- `isAuthenticated`: Boolean derived from authToken presence
+**Account State Variables**:
+- `account`: `GET /api/account`'s answer (`{ signedIn, user, links }`)
+- `linkProtected`: whether this link is protected (from `X-Link-Protected`)
 
 **Autocomplete State Variables**:
 - `autocompleteResults`: Array of current search results from Scryfall
@@ -191,26 +193,19 @@ The frontend is organized into ES modules for maintainability. Each module has a
 
 #### API Module (`js/api.js`)
 
-- `load()`: Fetches user/share data from API on startup; handles 401 for protected decklists
-- `save()`: Debounced save to API (500ms delay); includes auth headers if authenticated
+- `load()`: Fetches user/share data from API on startup; returns `{locked, otherAccount}` for a protected decklist that isn't this session's. Puts back edits a save couldn't store (session ended mid-edit).
+- `save()`: Debounced save to API (500ms delay). A 401/403 keeps the edit in sessionStorage and calls the `setOnLocked` handler (sign in again).
 - `shareDeck()`: Creates share link via API, returns URL
 - `getCard(cardName)`: Fetches card data from Scryfall API
-- `register(username, password, uuid)`: Creates account and stores JWT
-- `login(username, password)`: Authenticates and stores JWT
-- `logout()`: Clears auth state and localStorage
 
 #### Auth Module (`js/auth.js`)
 
-- `showAuthModal(mode)`: Opens auth modal in 'login' or 'register' mode
-- `hideAuthModal()`: Closes auth modal and clears form
-- `setAuthMode(mode)`: Toggles between login and register views
-- `toggleAuthMode()`: Switches between login/register in modal
-- `showAuthError(message)`: Displays error message in modal
-- `clearAuthError()`: Clears error message
-- `handleAuthSubmit(e)`: Handles form submission for login/register
-- `handleLogout()`: Logs out user and redirects to landing
-- `updateAuthUI()`: Updates header buttons based on auth state
-- `initAuth()`: Sets up all auth event listeners
+Decklister's use of the shared accounts module (`js/accounts/`):
+- `handleLocked({otherAccount, error})`: a protected link: GAuth again by itself if this browser's GAuth session expired, else the sign-in dialog
+- `protectThisLink()`: the Protect button (dialog when signed out)
+- `finishPendingProtect()`: back from GAuth, protect the link this tab set off to protect
+- `updateAuthUI()` / `initAuth()`: header and mobile buttons
+- `initLandingAccount()`, `newLink()`: the landing page's account part (Log in, the account's links, `/?signed-in`)
 
 #### Router Module (`js/router.js`)
 
@@ -374,7 +369,7 @@ The CSS is organized into focused modules using CSS `@import`. Each module has a
 | `autocomplete.css` | Autocomplete dropdown |
 | `landing.css` | Landing page |
 | `resize.css` | Resize handles |
-| `auth.css` | Auth modal and header buttons |
+| `auth.css` | Header account buttons, Protected badge, landing account list |
 | `share-mode.css` | Read-only view overrides |
 | `responsive.css` | All media queries |
 
@@ -427,13 +422,9 @@ The CSS is organized into focused modules using CSS `@import`. Each module has a
 - `.display-resizer`: Positioned on left edge of card display
 - `.mobile-render-resizer`: Horizontal handle between card display and card links (mobile only)
 
-**Auth Modal & Buttons** (`styles/auth.css`):
-- `.auth-modal`: Full-screen overlay with centered modal content
-- `.auth-modal-content`: Dark modal with form inputs
-- `.auth-input`: Styled form inputs with focus states
-- `.auth-submit-btn`: Orange primary action button
-- `.auth-error`: Red error message display
-- `.auth-toggle`: Link to switch between login/register modes
+**Account Buttons** (`styles/auth.css`; the sign-in dialog is `js/accounts/accounts.css`):
+- `.protected-badge`: green "Protected" in the header for the link's owner
+- `.landing-account`, `.landing-links`: the landing page's list of an account's links
 - `.header-auth`: Flex container for desktop header auth buttons
 - `.auth-btn`: Header button with icon, `.primary` modifier for orange background
 - `.username-display`: Shows logged-in username with icon
@@ -449,26 +440,13 @@ The CSS is organized into focused modules using CSS `@import`. Each module has a
 
 ### 5. Cloudflare Configuration (`wrangler.toml`)
 
-**Configuration Structure**:
-```toml
-name = "decklister"
-main = "src/index.js"
-compatibility_date = "2025-01-10"
-account_id = "5af9bf2be24dfe756af55b3bbd542e57"
-
-[assets]
-directory = "."
-binding = "ASSETS"
-
-[[kv_namespaces]]
-binding = "DECKLISTEDITOR"
-id = "bb576df04a11477f935a3b59ae24ba18"
-```
-
-**Key Configuration Elements**:
-- **Assets**: Serves static files from root directory via `ASSETS` binding
-- **KV Namespace**: `DECKLISTEDITOR` binding for user data persistence
-- **Compatibility Date**: Uses 2025-01-10 runtime features
+See `wrangler.toml`. The main points:
+- **Assets**: only `public/` is served. `run_worker_first` covers `/api/*` and `/auth/*`.
+- **KV** `DECKLISTEDITOR`: decks and shares.
+- **D1** `DB` (`decklister`): accounts and protected links (`migrations/`).
+- **Vars**: `APP_ORIGIN` (`https://decklister.gpeake.com`, the one address; other hosts redirect there), `GAUTH_ORIGIN`, `GAUTH_CERTS`.
+- **Secret**: `BETTER_AUTH_SECRET`.
+- **Custom domain**: decklister.gpeake.com is attached in the dashboard, not as `routes` (which make `wrangler dev` rewrite Host and Origin).
 
 ## Data Flow
 
@@ -568,28 +546,26 @@ id = "bb576df04a11477f935a3b59ae24ba18"
 ### Deployment
 
 ```bash
-npm run deploy
+npm run deploy   # tsc, tests, remote D1 migrations, wrangler deploy
 ```
 
-This runs `wrangler deploy` to publish the Worker to Cloudflare's edge network.
+### Tests
+
+```bash
+npm test         # vitest: src/accounts against SQLite (test/d1.ts)
+npx tsc          # typecheck src/**/*.ts
+```
 
 ### Local Development
 
-While not explicitly configured in package.json, you can use:
+`.dev.vars` (gitignored) sets `APP_ORIGIN=http://127.0.0.1:8789`, a local `BETTER_AUTH_SECRET`, and a local GAuth (`pnpm dev` in ~/Projects/GAuth, port 8797) with its certificate. Then:
 
 ```bash
-wrangler dev
+npx wrangler d1 migrations apply decklister --local
+npm run dev      # wrangler dev on 127.0.0.1:8789
 ```
 
-This starts a local development server with hot reloading.
-
-### Environment Setup
-
-1. Install Wrangler CLI
-2. Configure Cloudflare account credentials
-3. Create KV namespace matching `wrangler.toml` ID
-4. Set JWT secret for production: `wrangler secret put JWT_SECRET`
-5. Deploy using `npm run deploy`
+The local GAuth needs Decklister registered (entity ID `http://127.0.0.1:8789/api/auth/sso/saml2/sp/metadata?providerId=gauth`, ACS `.../sp/acs/gauth`).
 
 ## Technical Notes
 
@@ -617,15 +593,13 @@ This starts a local development server with hot reloading.
 
 ### Security Considerations
 
-- **Optional Authentication**: Users can create accounts to protect their decklists
-- **Password Security**: PBKDF2 with 100,000 iterations and SHA-256 for password hashing
-- **JWT Tokens**: HS256-signed tokens with 7-day expiry, stored in localStorage
-- **Timing Attack Prevention**: Constant-time password comparison; dummy hash for non-existent users
-- **Unprotected Decklists**: Without an account, data accessible to anyone with the URL
-- Share links do not expose user identity (remain public even for protected decklists)
+- **Secret links**: an unprotected decklist is readable and writable by anyone with its URL (the URL is the secret).
+- **Protected links**: anyone holding an unclaimed link can protect it with an account; then it opens only in that account's session. See `src/accounts/README.md`.
+- **Accounts**: username/password (PBKDF2-SHA256, 100k iterations, via WebCrypto; 30-day sessions) or GAuth (passkeys over SAML; 12-hour sessions). Never both on one account; password sign-in refuses GAuth accounts.
+- **Sessions**: Better Auth cookies (HttpOnly, host-only). No tokens in localStorage.
+- **CSRF**: writes from another origin are refused (`accounts.crossOriginPost`); only GAuth's ACS post is exempt.
+- Share links do not expose user identity (remain public even for protected decklists); only the owner can create them for a protected link.
 - No input sanitization on deck names
-- CORS not configured (relies on same-origin)
-- **JWT Secret**: Should be configured via `wrangler secret put JWT_SECRET` in production
 
 ### Data Migration
 
@@ -724,31 +698,19 @@ The application uses two Scryfall API endpoints:
 
 ### Authentication Workflow
 
-**Creating an Account (Protecting Your Decklist)**:
-1. Visit your decklist page (`/{uuid}`)
-2. Click "Create Account" in the header
-3. Enter username (3-30 alphanumeric/underscore) and password
-4. Account is linked to your current UUID
-5. Future visits to your UUID will require login
-6. Bookmark warning is hidden once authenticated
+**Protecting a Decklist**:
+1. On your decklist page (`/{uuid}`), click "Protect" in the header
+2. Signed in already: it's protected straight away. Otherwise the dialog asks for a username or email:
+   - a username: sign in with its password
+   - "Create an account": a username (3-30 letters, numbers, underscores) and a password (8+)
+   - the email of a GAuth account here: off to GAuth, and back to the page, protected
+3. From then on the link opens only when signed in to that account; the bookmark warning goes
 
-**Logging In**:
-1. Visit `/` or click "Login" button
-2. Enter username and password
-3. On success, redirected to your protected decklist
-4. JWT token stored in localStorage (7-day expiry)
+**Logging In**: "Log in" on the landing page or in the header. From the landing page you land on your decklist (or a list, if the account protects several).
 
-**Protected Decklist Access**:
-1. Visit a protected UUID without being logged in
-2. Redirected to `/?redirect={uuid}`
-3. See "This decklist is protected. Please login to access it."
-4. Click "Login" and authenticate
-5. Automatically redirected to the protected decklist
+**Protected Decklist Access**: opening a protected link without its owner's session shows the sign-in dialog over the page (a GAuth account whose session expired goes back through GAuth by itself, without clicks). Signed in as someone else: the dialog offers to sign out.
 
-**Logging Out**:
-1. Click "Logout" button in header
-2. JWT token cleared from localStorage
-3. Redirected to landing page
+**Logging Out**: "Log out" in the header ends the session and returns to the landing page. It also stops the automatic GAuth sign-in until the next sign-in.
 
 ## Deck Format Example
 
@@ -822,12 +784,13 @@ My Burn Deck
 - **Can't access protected decklist**: Ensure you're logged in with the correct account
 - **Login fails**: Verify username and password; check for typos
 - **Registration fails**: Username may already be taken; try a different one
-- **Token expired**: Log out and log back in (tokens expire after 7 days)
-- **"This decklist is protected" message**: You need to log in to access this decklist
+- **Session expired**: sign in again (password sessions last 30 days, GAuth sessions 12 hours); edits made meanwhile are kept and saved after signing in
+- **"This decklist is protected" dialog**: sign in as the account that protects it
 
 ## Repository History
 
 Recent commits show:
+- Accounts on Better Auth + D1 (`src/accounts`): username/password or GAuth, any account protects any number of links, legacy accounts migrated; site moved to `public/` (2026-11)
 - Optional user authentication with JWT tokens, PBKDF2 password hashing, protected decklists (v1.6.0)
 - New user onboarding with sample deck, empty decks state handling with disabled editor (v1.5.0)
 - Improved resize handles with visual dot indicators, sidebar/display px-based resizing, mobile render resizer (v1.4.0)

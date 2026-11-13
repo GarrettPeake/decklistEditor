@@ -4,7 +4,7 @@
 
 import * as state from './state.js';
 import * as dom from './dom.js';
-import { load, save } from './api.js';
+import { load, save, setOnLocked } from './api.js';
 import { initRouter, setInitialUrlState } from './router.js';
 import { setDeckList, switchDeck, copyShareUrl } from './deckList.js';
 import { updateData } from './cardDisplay.js';
@@ -12,7 +12,9 @@ import { initAutocomplete, triggerAutocomplete, hideAutocomplete } from './autoc
 import { initResizers } from './resizer.js';
 import { setupLandingPage, initLogoHandlers } from './landing.js';
 import { initMobileHandlers } from './mobile.js';
-import { initAuth, updateAuthUI } from './auth.js';
+import { initAuth, updateAuthUI, handleLocked, finishPendingProtect } from './auth.js';
+import { me, takeAuthError } from './accounts/accounts.js';
+import { openAccountDialog } from './accounts/dialog.js';
 
 // Initialize editor input handler
 function initEditor() {
@@ -58,11 +60,14 @@ async function start() {
     // Initialize logo click handlers (for returning to landing page)
     initLogoHandlers();
 
-    // Initialize auth (needed for landing page login button)
+    // Header account buttons
     initAuth();
 
+    // A GAuth sign-in that just came back with an error (?auth_error=)
+    const authError = takeAuthError();
+
     // Handle landing page
-    if (setupLandingPage()) {
+    if (setupLandingPage(authError)) {
         return;
     }
 
@@ -79,16 +84,36 @@ async function start() {
     initAutocomplete();
     initEditor();
 
-    // Load data from API
-    const loadResult = await load();
+    // A save that finds the session gone keeps the edit and asks to sign in again.
+    setOnLocked(handleLocked);
 
-    // If auth is required, the load function will redirect
-    if (loadResult?.authRequired) {
+    // Load decks, and who's signed in
+    const [loadResult, account] = await Promise.all([
+        load(),
+        state.isShareMode ? { signedIn: false } : me(),
+    ]);
+    state.setAccount(account);
+
+    // A protected link, and not this browser's: sign in (by itself, after a GAuth session expired)
+    if (loadResult?.locked) {
+        handleLocked({ otherAccount: loadResult.otherAccount, error: authError });
         return;
     }
 
-    // Update auth UI (show/hide buttons based on auth state)
+    // Back from GAuth, having set off to protect this link
+    await finishPendingProtect();
+
+    // Show/hide account buttons for this link
     updateAuthUI();
+
+    if (authError) {
+        openAccountDialog({ mode: 'signin', next: location.pathname, error: authError })
+            .then(async (result) => {
+                if (!result.signedIn) return;
+                state.setAccount(await me());
+                updateAuthUI();
+            });
+    }
 
     // Set initial URL state for history
     setInitialUrlState();
