@@ -4,8 +4,12 @@
   "description": "",
   "main": "script.js",
   "scripts": {
+    "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
   "author": "Garrett Peake",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "wrangler": "^4.60.0"
+  }
 }

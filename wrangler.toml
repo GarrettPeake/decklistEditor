@@ -3,6 +3,11 @@ main = "src/index.js"
 compatibility_date = "2025-01-10"
 account_id = "5af9bf2be24dfe756af55b3bbd542e57"
 
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
+
 [assets]
 directory = "."
 binding = "ASSETS"
