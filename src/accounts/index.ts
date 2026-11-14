@@ -126,6 +126,14 @@ export function createAccounts(config: AccountsConfig) {
     return { ok: true, owner };
   }
 
+  /**
+   * Unprotect a link, for an app deleting it. It checks nothing: call access() first
+   * and make sure the requester owns the link.
+   */
+  async function release(linkId: string): Promise<void> {
+    await config.db.prepare(`DELETE FROM "protectedLink" WHERE "id" = ?`).bind(linkId).run();
+  }
+
   /** GET /api/account: who is signed in, and the links they've protected. */
   async function account(req: Request): Promise<Response> {
     const user = await userOf(req);
@@ -247,7 +255,7 @@ export function createAccounts(config: AccountsConfig) {
     return foreign ? json(403, { error: "Cross-origin request refused." }) : null;
   }
 
-  return { route, access, userOf, crossOriginPost };
+  return { route, access, userOf, crossOriginPost, release };
 }
 
 export type Accounts = ReturnType<typeof createAccounts>;

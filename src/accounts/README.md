@@ -1,13 +1,14 @@
 # Accounts for secret-link apps
 
-Decklister's account system. It is written to be copied as is into other apps whose
-data lives behind a secret link (Pyre next). It has two halves, and neither contains
+Decklister's account system. It is copied as is into other apps whose data lives behind
+a secret link: Pyre has the same files at `worker/accounts/` and `src/accounts/`. Change
+them in one app, copy them to the other. It has two halves, and neither contains
 anything app-specific:
 
 | | |
 |---|---|
 | `src/accounts/` | The Worker half (TypeScript): Better Auth, GAuth over SAML, protected links. |
-| `public/js/accounts/` | The browser half (plain ES modules, no framework): `accounts.js` (calls and the auto sign-in rules), `dialog.js` (the sign-in dialog), `accounts.css`. |
+| `public/js/accounts/` | The browser half (plain ES modules, no framework): `accounts.js` (calls and the auto sign-in rules), `dialog.js` (the sign-in dialog), `accounts.css`, and `.d.ts` types for TypeScript apps. |
 
 ## What people can do
 
@@ -81,6 +82,8 @@ person's first GAuth sign-in is one of two things:
    const res = await accounts.route(request); if (res) return res;
    // every read/write of a link's data:
    const access = await accounts.access(request, id); if (!access.ok) return access.response;
+   // deleting a link's data (owner only: access.owner === the signed-in user's id):
+   await accounts.release(id);
    ```
 5. In the page:
    - Load the link's data. On a 401/403 with `protected: true`:
@@ -93,7 +96,9 @@ person's first GAuth sign-in is one of two things:
      - read `takeAuthError()` and show it in the dialog;
      - once signed in, call `takePendingProtect(id)` and then `protect(id)` (this
        finishes a protect that went through GAuth).
-   - Decklister's `public/js/auth.js` is the worked example.
+   - Decklister's `public/js/auth.js` is the worked example; Pyre's `src/contexts/AuthContext.tsx`
+     and `src/pages/AppPage.tsx` are the React one.
+   - Theme it with `--acct-*` properties on `:root` (see the top of `accounts.css`).
 6. Register the app in GAuth (Admin → Service providers → Add):
    - Entity ID: `<APP_ORIGIN>/api/auth/sso/saml2/sp/metadata?providerId=gauth`
    - ACS URL: `<APP_ORIGIN>/api/auth/sso/saml2/sp/acs/gauth`

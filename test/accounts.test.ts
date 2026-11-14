@@ -209,6 +209,16 @@ describe("protected links", () => {
     await owner.send("/api/auth/sign-out", { method: "POST" });
     expect((await accounts.access(owner.request("/api/link1"), "link1")).ok).toBe(false);
   });
+
+  it("release() unprotects a link (for an app deleting it)", async () => {
+    const owner = browser();
+    await register(owner, "ivy");
+    await owner.send("/api/account/links", { method: "POST", json: { id: "gone" } });
+    expect((await accounts.access(browser().request("/api/gone"), "gone")).ok).toBe(false);
+    await accounts.release("gone");
+    expect(await accounts.access(browser().request("/api/gone"), "gone")).toEqual({ ok: true, owner: null });
+    expect((await (await owner.send("/api/account")).json()).links).toEqual([]);
+  });
 });
 
 describe("legacy accounts", () => {

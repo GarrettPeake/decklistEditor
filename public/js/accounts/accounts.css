@@ -14,11 +14,13 @@
     --_danger: var(--acct-danger, #ff4757);
     --_font: var(--acct-font, inherit);
     --_mono: var(--acct-mono, 'JetBrains Mono', ui-monospace, monospace);
+    --_radius: var(--acct-radius, 0);
 
     /* Centred even when the app's reset zeroes margins. */
     margin: auto;
     padding: 0;
     border: 2px solid var(--_border);
+    border-radius: var(--_radius);
     background: var(--_bg);
     color: var(--_fg);
     font-family: var(--_font);
@@ -48,6 +50,7 @@
 }
 
 .acct-close {
+    border-radius: var(--_radius);
     position: absolute;
     top: 16px;
     right: 16px;
@@ -84,6 +87,7 @@
 }
 
 .acct-error {
+    border-radius: var(--_radius);
     margin: 0;
     padding: 10px 12px;
     border: 2px solid var(--_danger);
@@ -116,6 +120,7 @@
 }
 
 .acct-row .acct-input {
+    border-radius: var(--_radius);
     flex: 1;
     min-width: 0;
 }
@@ -140,6 +145,7 @@
 }
 
 .acct-primary {
+    border-radius: var(--_radius);
     margin-top: 6px;
     padding: 13px 20px;
     background: var(--_accent);
