@@ -545,8 +545,12 @@ See `wrangler.toml`. The main points:
 
 ### Deployment
 
+**Pushing to `master` deploys**: Cloudflare Workers Builds builds and deploys every push.
+It doesn't apply D1 migrations, so apply a new migration before pushing the code that
+needs it (`npx wrangler d1 migrations apply decklister --remote`).
+
 ```bash
-npm run deploy   # tsc, tests, remote D1 migrations, wrangler deploy
+npm run deploy   # by hand: tsc, tests, remote D1 migrations, wrangler deploy
 ```
 
 ### Tests
